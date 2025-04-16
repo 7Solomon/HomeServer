@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Dateien - Home Server{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/storage.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="files-container">
+    <div class="files-header">
+        <h2>Meine Dateien</h2>
+        <div class="files-actions">
+            <button id="upload-btn" class="btn btn-primary">
+                <i class="fas fa-upload"></i> Hochladen
+            </button>
+            <button id="new-folder-btn" class="btn">
+                <i class="fas fa-folder-plus"></i> Neuer Ordner
+            </button>
+        </div>
+    </div>
+
+    <div class="breadcrumb">
+        <a href="{{ url_for('storage.files') }}"><i class="fas fa-home"></i></a>
+        {% for dir in path %}
+        <span class="separator">/</span>
+        <a href="{{ url_for('storage.directory', dir_id=dir.id) }}">{{ dir.name }}</a>
+        {% endfor %}
+    </div>
+
+    <div class="files-list">
+        <div class="files-list-header">
+            <div class="file-name">Name</div>
+            <div class="file-size">Größe</div>
+            <div class="file-date">Datum</div>
+            <div class="file-actions">Aktionen</div>
+        </div>
+
+        {% if parent_dir %}
+        <div class="file-item directory back">
+            <div class="file-name">
+                <a href="{{ url_for('storage.directory', dir_id=parent_dir.id) }}">
+                    <i class="fas fa-arrow-up"></i> ..
+                </a>
+            </div>
+            <div class="file-size">-</div>
+            <div class="file-date">-</div>
+            <div class="file-actions">-</div>
+        </div>
+        {% endif %}
+
+        {% for directory in directories %}
+        <div class="file-item directory" data-id="{{ directory.id }}">
+            <div class="file-name">
+                <a href="{{ url_for('storage.directory', dir_id=directory.id) }}">
+                    <i class="fas fa-folder"></i> {{ directory.name }}
+                </a>
+            </div>
+            <div class="file-size">-</div>
+            <div class="file-date">{{ directory.created_at.strftime('%d.%m.%Y') }}</div>
+            <div class="file-actions">
+                <button class="action-btn rename-btn" data-type="directory" data-id="{{ directory.id }}"
+                    title="Umbenennen">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="action-btn delete-btn" data-type="directory" data-id="{{ directory.id }}"
+                    title="Löschen">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% for file in files %}
+        <div class="file-item" data-id="{{ file.id }}">
+            <div class="file-name">
+                <a href="{{ url_for('storage.download', file_id=file.id) }}">
+                    <i class="fas {{ file_icon(file.name) }}"></i> {{ file.name }}
+                </a>
+            </div>
+            <div class="file-size">{{ format_size(file.size) }}</div>
+            <div class="file-date">{{ file.created_at.strftime('%d.%m.%Y') }}</div>
+            <div class="file-actions">
+                <button class="action-btn rename-btn" data-type="file" data-id="{{ file.id }}" title="Umbenennen">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="action-btn delete-btn" data-type="file" data-id="{{ file.id }}" title="Löschen">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if not directories and not files %}
+        <div class="empty-state">
+            <i class="far fa-folder-open"></i>
+            <p>Dieser Ordner ist leer</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div id="upload-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Datei hochladen</h3>
+        <form id="upload-form" enctype="multipart/form-data">
+            <input type="hidden" name="directory_id" value="{{ current_dir.id if current_dir else '' }}">
+            <div class="form-group">
+                <label for="file">Datei auswählen</label>
+                <input type="file" id="file" name="file" required>
+            </div>
+            <div class="upload-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                <div class="progress-text">0%</div>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">Hochladen</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- New Folder Modal -->
+<div id="folder-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Neuer Ordner</h3>
+        <form id="folder-form">
+            <input type="hidden" name="parent_id" value="{{ current_dir.id if current_dir else '' }}">
+            <div class="form-group">
+                <label for="folder-name">Ordnername</label>
+                <input type="text" id="folder-name" name="name" required>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">Erstellen</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Rename Modal -->
+<div id="rename-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Umbenennen</h3>
+        <form id="rename-form">
+            <input type="hidden" id="rename-type" name="type">
+            <input type="hidden" id="rename-id" name="id">
+            <div class="form-group">
+                <label for="new-name">Neuer Name</label>
+                <input type="text" id="new-name" name="name" required>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">Umbenennen</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Löschen bestätigen</h3>
+        <p>Möchtest du wirklich <span id="delete-name"></span> löschen?</p>
+        <form id="delete-form">
+            <input type="hidden" id="delete-type" name="type">
+            <input type="hidden" id="delete-id" name="id">
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary close-btn">Abbrechen</button>
+                <button type="submit" class="btn btn-danger">Löschen</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/storage.js') }}"></script>
+{% endblock %}

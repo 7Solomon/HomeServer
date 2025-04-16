@@ -1,0 +1,230 @@
+/* Dateiverwaltung-Stile */
+.files-container {
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+}
+
+.files-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.files-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 0.75rem;
+    background-color: #f8f9fa;
+    border-radius: var(--border-radius);
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.breadcrumb a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.breadcrumb .separator {
+    margin: 0 0.5rem;
+    color: #6c757d;
+}
+
+.files-list {
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius);
+}
+
+.files-list-header {
+    display: grid;
+    grid-template-columns: 3fr 1fr 1fr 1fr;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    font-weight: bold;
+    border-bottom: 1px solid #ddd;
+}
+
+.file-item {
+    display: grid;
+    grid-template-columns: 3fr 1fr 1fr 1fr;
+    padding: 0.75rem 1rem;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s;
+}
+
+.file-item:last-child {
+    border-bottom: none;
+}
+
+.file-item:hover {
+    background-color: #f5f7fa;
+}
+
+.file-item.directory {
+    background-color: rgba(52, 152, 219, 0.05);
+}
+
+.file-item.back {
+    background-color: #f8f9fa;
+}
+
+.file-name a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: var(--text-color);
+}
+
+.file-name i {
+    margin-right: 0.5rem;
+    font-size: 1.2rem;
+    width: 20px;
+    text-align: center;
+}
+
+.file-name a:hover {
+    color: var(--primary-color);
+}
+
+.directory .file-name a {
+    color: var(--primary-color);
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.3rem;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.action-btn:hover {
+    opacity: 1;
+}
+
+.rename-btn {
+    color: var(--primary-color);
+}
+
+.delete-btn {
+    color: var(--danger-color);
+}
+
+.file-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+/* Modal-Stile */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    overflow: auto;
+}
+
+.modal-content {
+    background-color: white;
+    margin: 10% auto;
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+.modal h3 {
+    margin-bottom: 1.5rem;
+}
+
+.close {
+    position: absolute;
+    top: 1rem;
+    right: 1.5rem;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+/* Fortschrittsbalken */
+.upload-progress {
+    margin: 1rem 0;
+    display: none;
+}
+
+.progress-bar {
+    height: 20px;
+    background-color: #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0;
+    background-color: var(--primary-color);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+/* Responsive Stile für Dateiverwaltung */
+@media (max-width: 768px) {
+    .files-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .files-list-header,
+    .file-item {
+        grid-template-columns: 2fr 1fr auto;
+    }
+
+    .file-date {
+        display: none;
+    }
+}

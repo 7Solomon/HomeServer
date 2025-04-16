@@ -1,12 +1,15 @@
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 import secrets
 from app import db
 from app.models.user import User
 from app.models.token import ApiToken
+from app.utils.auth import admin_required
 
 auth_bp = Blueprint('auth', __name__)
+
+
 
 # Web interface routes
 @auth_bp.route('/login', methods=['GET', 'POST'])
@@ -84,78 +87,76 @@ def register():
     return render_template('auth/register.html')
 
 # API authentication routes
-@auth_bp.route('/api/token', methods=['POST'])
-def get_token():
-    """Get API token with username/password"""
+@auth_bp.route('/api/request', methods=['POST'])
+def request_token():
+    """Request API token with name"""
     data = request.get_json()
-    
-    if not data or 'username' not in data or 'password' not in data:
-        return jsonify({'error': 'Missing username or password'}), 400
-        
-    user = User.query.filter_by(username=data['username']).first()
-    
-    if not user or not user.check_password(data['password']):
-        return jsonify({'error': 'Invalid credentials'}), 401
 
     # Generate a new token
     token_value = secrets.token_hex(32)
-    token = ApiToken(token=token_value, user_id=user.id)
+    token = ApiToken(token=token_value)
     
     db.session.add(token)
     db.session.commit()
     
     return jsonify({
         'token': token_value,
-        'user_id': user.id,
-        'username': user.username
+        'message': 'Token erfolgreich eingerichtet, warte auf Genehmigung..'
     })
 
-@auth_bp.route('/api/register', methods=['POST'])
-def register_api():
-    """Register a new user via API"""
-    data = request.get_json()
-    
-    if not data or 'username' not in data or 'password' not in data or 'first_name' not in data or 'last_name' not in data:
-        return jsonify({'error': 'Missing required fields'}), 400
-    
-    # Check if user exists
-    if User.query.filter_by(username=data['username']).first():
-        return jsonify({'error': 'Username already exists'}), 400
-    
+# Admin token generation routes
+@auth_bp.route('/admin/token', methods=['GET'])
+@login_required
+@admin_required
+def admin_token_page():
+    """Show admin token generation page"""
+    return render_template('auth/admin_token.html')
 
-    user = User(username=data['username'])
-    user.set_password(data['password'])
-    user.first_name = data.get('first_name', '')
-    user.last_name = data.get('last_name', '')
-    user.is_approved = False
+@auth_bp.route('/admin/token/generate', methods=['POST'])
+@login_required
+@admin_required
+def generate_admin_token():
+    """Generate a new admin token"""
+    # Generate a secure token
+    token_value = secrets.token_hex(32)
     
-    db.session.add(user)
+    # Create the token with admin privileges - using only fields that exist in the model
+    token = ApiToken(
+        token=token_value,
+        is_active=True,
+        is_admin=True
+    )
+    
+    db.session.add(token)
+    db.session.commit()
+    
+    # Store token in session to display it once
+    session['token'] = token_value
+    flash('Admin token generated successfully', 'success')
+    
+    return redirect(url_for('admin.pending_users'))
+
+# API endpoint for programmatic admin token generation
+@auth_bp.route('/api/admin/token', methods=['POST'])
+@login_required
+@admin_required
+def api_generate_admin_token():
+    """API endpoint to generate an admin token"""
+    token_value = secrets.token_hex(32)
+    
+    token = ApiToken(
+        token=token_value,
+        user_id=current_user.id,
+        is_active=True,
+        is_admin=True
+    )
+    
+    db.session.add(token)
     db.session.commit()
     
     return jsonify({
-        'message': 'Registration successful! Your account is pending admin approval.',
-        'user_id': user.id
+        'status': 'success',
+        'message': 'Admin token generated successfully',
+        'token': token_value
     })
-    ## Create user
-    #user = User(
-    #    username=data['username'],
-    #    password_hash=generate_password_hash(data['password']),
-    #    email=data.get('email', '')
-    #)
-    #
-    #db.session.add(user)
-    #db.session.commit()
-    #
-    ## Generate a token for the new user
-    #token_value = secrets.token_hex(32)
-    #token = ApiToken(token=token_value, user_id=user.id)
-    #
-    #db.session.add(token)
-    #db.session.commit()
-    #
-    #return jsonify({
-    #    'message': 'User created successfully',
-    #    'token': token_value,
-    #    'user_id': user.id,
-    #    'username': user.username
-    #}), 201
+

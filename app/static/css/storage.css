@@ -228,3 +228,35 @@
         display: none;
     }
 }
+
+/* Update files-list-header and file-item for admin view */
+.files-list-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    font-weight: bold;
+    border-bottom: 1px solid #ddd;
+}
+
+.file-item {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+    padding: 0.75rem 1rem;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s;
+}
+
+@media (max-width: 768px) {
+
+    .files-list-header,
+    .file-item {
+        grid-template-columns: 2fr 1fr auto;
+    }
+
+    .file-date,
+    .file-owner {
+        display: none;
+    }
+}

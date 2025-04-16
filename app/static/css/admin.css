@@ -1,0 +1,12 @@
+.admin-controls {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #f1f1f1;
+    border-radius: 4px;
+}
+
+.owner-info {
+    color: #666;
+    font-style: italic;
+    margin-left: 10px;
+}

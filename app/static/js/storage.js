@@ -1,135 +1,85 @@
 /**
- * JavaScript für die Dateiverwaltungsfunktionen
+ * Simple admin file management functionality
  */
 document.addEventListener('DOMContentLoaded', function () {
-    // Modal-Steuerung
+    // ===== Modal Management =====
     const modals = {
         upload: document.getElementById('upload-modal'),
         folder: document.getElementById('folder-modal'),
-        rename: document.getElementById('rename-modal'),
-        delete: document.getElementById('delete-modal')
+        delete: document.getElementById('delete-modal'),
+        move: document.getElementById('move-modal'),
+        owner: document.getElementById('owner-modal')
     };
 
-    const openModal = (modalId) => {
-        modals[modalId].style.display = 'block';
-    };
+    // Open/close modal functions
+    function openModal(modalId) {
+        if (modals[modalId]) modals[modalId].style.display = 'block';
+    }
 
-    const closeModal = (modalId) => {
-        modals[modalId].style.display = 'none';
-    };
-
-    // Modals schließen, wenn auf X oder außerhalb geklickt wird
-    document.querySelectorAll('.close, .close-btn').forEach(element => {
-        element.addEventListener('click', function () {
-            Object.keys(modals).forEach(key => {
-                closeModal(key);
-            });
+    function closeAllModals() {
+        Object.values(modals).forEach(modal => {
+            if (modal) modal.style.display = 'none';
         });
+    }
+
+    // Close buttons and background click
+    document.querySelectorAll('.close, .close-btn').forEach(btn => {
+        btn.addEventListener('click', closeAllModals);
     });
 
     window.addEventListener('click', function (event) {
-        Object.entries(modals).forEach(([key, modal]) => {
-            if (event.target === modal) {
-                closeModal(key);
-            }
+        Object.values(modals).forEach(modal => {
+            if (event.target === modal) modal.style.display = 'none';
         });
     });
 
-    // Upload-Modal öffnen
-    document.getElementById('upload-btn')?.addEventListener('click', function () {
-        openModal('upload');
-    });
+    // ===== File Upload =====
+    document.getElementById('upload-btn')?.addEventListener('click', () => openModal('upload'));
 
-    // Neuer Ordner-Modal öffnen
-    document.getElementById('new-folder-btn')?.addEventListener('click', function () {
-        openModal('folder');
-    });
-
-    // Dateien hochladen
     const uploadForm = document.getElementById('upload-form');
     if (uploadForm) {
         uploadForm.addEventListener('submit', function (e) {
             e.preventDefault();
-
-            const formData = new FormData(uploadForm);
+            const formData = new FormData(this);
             const progressBar = document.querySelector('.progress-fill');
             const progressText = document.querySelector('.progress-text');
-            const uploadProgress = document.querySelector('.upload-progress');
 
-            uploadProgress.style.display = 'block';
-
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', '/api/upload');
-
-            // Token aus localStorage holen, falls vorhanden
-            const token = localStorage.getItem('auth_token');
-            if (token) {
-                xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-            }
-
-            xhr.upload.addEventListener('progress', function (e) {
-                if (e.lengthComputable) {
-                    const percent = Math.round((e.loaded / e.total) * 100);
-                    progressBar.style.width = percent + '%';
-                    progressText.textContent = percent + '%';
-                }
-            });
-
-            xhr.addEventListener('load', function () {
-                if (xhr.status === 200 || xhr.status === 201) {
-                    const response = JSON.parse(xhr.responseText);
+            fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) throw new Error(data.error);
                     showNotification('Datei erfolgreich hochgeladen', 'success');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                } else {
-                    let errorMsg = 'Fehler beim Hochladen der Datei';
-                    try {
-                        const response = JSON.parse(xhr.responseText);
-                        errorMsg = response.error || errorMsg;
-                    } catch (e) { }
-                    showNotification(errorMsg, 'error');
-                }
-            });
-
-            xhr.addEventListener('error', function () {
-                showNotification('Fehler beim Hochladen der Datei', 'error');
-            });
-
-            xhr.send(formData);
+                    setTimeout(() => window.location.reload(), 1000);
+                })
+                .catch(error => {
+                    showNotification(error.message || 'Fehler beim Hochladen', 'error');
+                });
         });
     }
 
-    // Ordner erstellen
+    // ===== Create Folder =====
+    document.getElementById('new-folder-btn')?.addEventListener('click', () => openModal('folder'));
+
     const folderForm = document.getElementById('folder-form');
     if (folderForm) {
         folderForm.addEventListener('submit', function (e) {
             e.preventDefault();
+            const formData = new FormData(this);
 
-            const formData = new FormData(folderForm);
-            const data = {
-                name: formData.get('name'),
-                parent_id: formData.get('parent_id') || null
-            };
-
-            fetch('/api/directories', {
+            fetch('/api/directory/create', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                },
-                body: JSON.stringify(data)
+                body: formData,
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
             })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.error) {
-                        throw new Error(data.error);
-                    }
-
+                    if (data.error) throw new Error(data.error);
                     showNotification('Ordner erfolgreich erstellt', 'success');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
+                    setTimeout(() => window.location.reload(), 1000);
                 })
                 .catch(error => {
                     showNotification(error.message || 'Fehler beim Erstellen des Ordners', 'error');
@@ -137,22 +87,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Umbenennen-Modal aktivieren
-    document.querySelectorAll('.rename-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const type = this.dataset.type;
-            const id = this.dataset.id;
-            const name = this.closest('.file-item').querySelector('.file-name').textContent.trim();
-
-            document.getElementById('rename-type').value = type;
-            document.getElementById('rename-id').value = id;
-            document.getElementById('new-name').value = name;
-
-            openModal('rename');
-        });
-    });
-
-    // Löschen-Modal aktivieren
+    // ===== Delete Files/Folders =====
     document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', function () {
             const type = this.dataset.type;
@@ -167,44 +102,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Umbenennen durchführen
-    const renameForm = document.getElementById('rename-form');
-    if (renameForm) {
-        renameForm.addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            const type = document.getElementById('rename-type').value;
-            const id = document.getElementById('rename-id').value;
-            const newName = document.getElementById('new-name').value;
-
-            let endpoint = type === 'directory' ? `/api/directories/${id}` : `/api/files/${id}`;
-
-            fetch(endpoint, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                },
-                body: JSON.stringify({ name: newName })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        throw new Error(data.error);
-                    }
-
-                    showNotification('Erfolgreich umbenannt', 'success');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                })
-                .catch(error => {
-                    showNotification(error.message || 'Fehler beim Umbenennen', 'error');
-                });
-        });
-    }
-
-    // Löschen durchführen
     const deleteForm = document.getElementById('delete-form');
     if (deleteForm) {
         deleteForm.addEventListener('submit', function (e) {
@@ -213,24 +110,20 @@ document.addEventListener('DOMContentLoaded', function () {
             const type = document.getElementById('delete-type').value;
             const id = document.getElementById('delete-id').value;
 
-            let endpoint = type === 'directory' ? `/api/directories/${id}` : `/api/files/${id}`;
+            // Use the admin routes for deletion
+            let endpoint = type === 'directory' ?
+                `/api/admin/delete/directory/${id}` :
+                `/api/admin/delete/file/${id}`;
 
             fetch(endpoint, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                }
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
             })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.error) {
-                        throw new Error(data.error);
-                    }
-
+                    if (data.error) throw new Error(data.error);
                     showNotification('Erfolgreich gelöscht', 'success');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
+                    setTimeout(() => window.location.reload(), 1000);
                 })
                 .catch(error => {
                     showNotification(error.message || 'Fehler beim Löschen', 'error');
@@ -238,20 +131,95 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Benachrichtigungsfunktion
-    function showNotification(message, type) {
+    // ===== Move Files/Folders =====
+    document.querySelectorAll('.move-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const type = this.dataset.type;
+            const id = this.dataset.id;
+
+            document.getElementById('move-type').value = type;
+            document.getElementById('move-id').value = id;
+
+            fetch(`/api/directories/list?exclude=${type === 'directory' ? id : ''}`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('target-directory');
+                    select.innerHTML = '<option value="root">Root-Verzeichnis</option>';
+
+                    (data.directories || []).forEach(dir => {
+                        const option = document.createElement('option');
+                        option.value = dir.id;
+                        option.textContent = dir.path;
+                        select.appendChild(option);
+                    });
+
+                    openModal('move');
+                })
+                .catch(error => {
+                    showNotification('Fehler beim Laden der Verzeichnisse', 'error');
+                });
+        });
+    });
+
+    const moveForm = document.getElementById('move-form');
+    if (moveForm) {
+        moveForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const type = document.getElementById('move-type').value;
+            const id = document.getElementById('move-id').value;
+            const targetDirId = document.getElementById('target-directory').value;
+
+            let endpoint = type === 'directory' ?
+                `/api/admin/move/directory/${id}` :
+                `/api/admin/move/file/${id}`;
+
+            const formData = new FormData();
+            formData.append(type === 'directory' ? 'parent_id' : 'directory_id', targetDirId);
+
+            fetch(endpoint, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) throw new Error(data.error);
+                    showNotification('Erfolgreich verschoben', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                })
+                .catch(error => {
+                    showNotification(error.message || 'Fehler beim Verschieben', 'error');
+                });
+        });
+    }
+
+    // Helper function for notifications
+    function showNotification(message, type = 'info') {
+        // Check if notification container exists, create if not
+        let container = document.querySelector('.notification-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'notification-container';
+            document.body.appendChild(container);
+        }
+
+        // Create notification element
         const notification = document.createElement('div');
-        notification.className = `flash-message ${type}`;
+        notification.className = `notification ${type}`;
         notification.textContent = message;
 
-        const container = document.querySelector('.container');
-        container.insertBefore(notification, container.firstChild);
+        // Add to container
+        container.appendChild(notification);
 
+        // Remove after timeout
         setTimeout(() => {
-            notification.style.opacity = '0';
+            notification.classList.add('fade');
             setTimeout(() => {
                 notification.remove();
-            }, 500);
-        }, 5000);
+            }, 300);
+        }, 3000);
     }
 });

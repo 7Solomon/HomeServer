@@ -4,45 +4,50 @@ from flask_login import current_user
 from app.models.token import ApiToken
 from app.models.user import User
 
-def token_required(f):
+
+def valid_token(f):
     @wraps(f)
-    def decorated(*args, **kwargs):
+    def decorated_function(*args, **kwargs):
         token = None
         
-        # Check if token is in headers
-        if 'Authorization' in request.headers:
-            auth_header = request.headers['Authorization']
-            if auth_header.startswith('Bearer '):
-                token = auth_header.split(' ')[1]
+        # Get token from Authorization header
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
         
-        # Check if token is in request arguments
-        if not token and 'token' in request.args:
-            token = request.args.get('token')
-        
+        # Or from request parameters
         if not token:
-            return jsonify({'error': 'Token is missing!'}), 401
-        
-        try:
-            # Find the token in database
-            token_record = ApiToken.query.filter_by(token=token).first()
+            token = request.args.get('token')
             
-            if not token_record or not token_record.is_valid():
-                return jsonify({'error': 'Token is invalid or expired!'}), 401
+        if not token:
+            return jsonify({'message': 'Token is missing!'}), 401
             
-            # Get the user
-            user = User.query.get(token_record.user_id)
-            if not user:
-                return jsonify({'error': 'User not found!'}), 401
-                
-            # Store user in flask g object for route functions to use
-            g.current_user = user
+        # Check if token exists and is valid
+        token_record = ApiToken.query.filter_by(token=token).first()
+        if not token_record or not token_record.is_valid():
+            return jsonify({'message': 'Invalid or expired token!'}), 401
             
-        except Exception as e:
-            return jsonify({'error': f'Token authentication error: {str(e)}'}), 401
-        
+        # Maybe add token refresh stuff
+        # request.token = token_record
+            
         return f(*args, **kwargs)
-    
-    return decorated
+    return decorated_function
+
+def admin_token(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # First validate the token
+        token_validator = valid_token(lambda: None)
+        result = token_validator()
+        if result is not None:
+            return result  # Return error from token validation
+            
+        # Now check if token has admin privileges
+        if not request.token.is_admin:
+            return jsonify({'message': 'Admin privileges required!'}), 403
+            
+        return f(*args, **kwargs)
+    return decorated_function
 
 def admin_required(f):
     """

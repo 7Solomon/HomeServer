@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Dateien - Home Server{% endblock %}
+{% block title %}{% if current_user.is_admin %}Admin Dateiverwaltung{% else %}Dateien{% endif %} - Home Server{%
+endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/storage.css') }}">
@@ -9,7 +10,7 @@
 {% block content %}
 <div class="files-container">
     <div class="files-header">
-        <h2>Meine Dateien</h2>
+        <h2>{% if current_user.is_admin %}Admin Dateiverwaltung{% else %}Dateiverwaltung{% endif %}</h2>
         <div class="files-actions">
             <button id="upload-btn" class="btn btn-primary">
                 <i class="fas fa-upload"></i> Hochladen
@@ -21,16 +22,20 @@
     </div>
 
     <div class="breadcrumb">
-        <a href="{{ url_for('storage.files') }}"><i class="fas fa-home"></i></a>
+        <a href="{{ url_for('storage.admin_files') if current_user.is_admin else url_for('storage.files') }}"><i
+                class="fas fa-home"></i></a>
         {% for dir in path %}
         <span class="separator">/</span>
-        <a href="{{ url_for('storage.directory', dir_id=dir.id) }}">{{ dir.name }}</a>
+        <a
+            href="{{ url_for('storage.admin_directory', dir_id=dir.id) if current_user.is_admin else url_for('storage.directory', dir_id=dir.id) }}">{{
+            dir.name }}</a>
         {% endfor %}
     </div>
 
     <div class="files-list">
         <div class="files-list-header">
             <div class="file-name">Name</div>
+            {% if current_user.is_admin %}<div class="file-owner">Besitzer</div>{% endif %}
             <div class="file-size">Größe</div>
             <div class="file-date">Datum</div>
             <div class="file-actions">Aktionen</div>
@@ -39,10 +44,11 @@
         {% if parent_dir %}
         <div class="file-item directory back">
             <div class="file-name">
-                <a href="{{ url_for('storage.directory', dir_id=parent_dir.id) }}">
+                <a href="{{ url_for('storage.admin_directory', dir_id=parent_dir.id) }}">
                     <i class="fas fa-arrow-up"></i> ..
                 </a>
             </div>
+            <div class="file-owner">-</div>
             <div class="file-size">-</div>
             <div class="file-date">-</div>
             <div class="file-actions">-</div>
@@ -52,10 +58,12 @@
         {% for directory in directories %}
         <div class="file-item directory" data-id="{{ directory.id }}">
             <div class="file-name">
-                <a href="{{ url_for('storage.directory', dir_id=directory.id) }}">
+                <a
+                    href="{{ url_for('storage.admin_directory', dir_id=directory.id) if current_user.is_admin else url_for('storage.directory', dir_id=directory.id) }}">
                     <i class="fas fa-folder"></i> {{ directory.name }}
                 </a>
             </div>
+            {% if current_user.is_admin %}<div class="file-owner">{{ directory.user.username }}</div>{% endif %}
             <div class="file-size">-</div>
             <div class="file-date">{{ directory.created_at.strftime('%d.%m.%Y') }}</div>
             <div class="file-actions">
@@ -63,6 +71,16 @@
                     title="Umbenennen">
                     <i class="fas fa-edit"></i>
                 </button>
+                {% if current_user.is_admin %}
+                <button class="action-btn move-btn" data-type="directory" data-id="{{ directory.id }}"
+                    title="Verschieben">
+                    <i class="fas fa-exchange-alt"></i>
+                </button>
+                <button class="action-btn owner-btn" data-type="directory" data-id="{{ directory.id }}"
+                    title="Besitzer ändern">
+                    <i class="fas fa-user-edit"></i>
+                </button>
+                {% endif %}
                 <button class="action-btn delete-btn" data-type="directory" data-id="{{ directory.id }}"
                     title="Löschen">
                     <i class="fas fa-trash"></i>
@@ -78,15 +96,26 @@
                     <i class="fas {{ file_icon(file.name) }}"></i> {{ file.name }}
                 </a>
             </div>
+            {% if current_user.is_admin %}<div class="file-owner">{{ file.user.username }}</div>{% endif %}
             <div class="file-size">{{ format_size(file.size) }}</div>
             <div class="file-date">{{ file.created_at.strftime('%d.%m.%Y') }}</div>
             <div class="file-actions">
                 <button class="action-btn rename-btn" data-type="file" data-id="{{ file.id }}" title="Umbenennen">
                     <i class="fas fa-edit"></i>
                 </button>
+                {% if current_user.is_admin %}
+                <button class="action-btn move-btn" data-type="file" data-id="{{ file.id }}" title="Verschieben">
+                    <i class="fas fa-exchange-alt"></i>
+                </button>
+                {% endif %}
                 <button class="action-btn delete-btn" data-type="file" data-id="{{ file.id }}" title="Löschen">
                     <i class="fas fa-trash"></i>
                 </button>
+                {% if current_user.is_admin %}
+                <button class="action-btn owner-btn" data-type="file" data-id="{{ file.id }}" title="Besitzer ändern">
+                    <i class="fas fa-user-edit"></i>
+                </button>
+                {% endif %}
             </div>
         </div>
         {% endfor %}
@@ -156,6 +185,49 @@
             </div>
             <div class="form-group">
                 <button type="submit" class="btn btn-primary">Umbenennen</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Move Modal -->
+<div id="move-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Verschieben</h3>
+        <form id="move-form">
+            <input type="hidden" id="move-type" name="type">
+            <input type="hidden" id="move-id" name="id">
+            <div class="form-group">
+                <label for="target-directory">Zielverzeichnis</label>
+                <select id="target-directory" name="directory_id" required>
+                    <option value="root">Root-Verzeichnis</option>
+                    <!-- Directory options will be populated via JavaScript -->
+                </select>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">Verschieben</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Change Owner Modal -->
+<div id="owner-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Besitzer ändern</h3>
+        <form id="owner-form">
+            <input type="hidden" id="owner-type" name="type">
+            <input type="hidden" id="owner-id" name="id">
+            <div class="form-group">
+                <label for="user-select">Neuer Besitzer</label>
+                <select id="user-select" name="user_id" required>
+                    <!-- User options will be populated via JavaScript -->
+                </select>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">Besitzer ändern</button>
             </div>
         </form>
     </div>

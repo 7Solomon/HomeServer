@@ -1,6 +1,8 @@
 # Home Server
 
-Ein Vibe Coded Home Server (auch gennant Heim Speicher) für 
+Ein Vibe Coded Home Server (auch gennant Heim Speicher) mit ganz viel Ai slop, aber funktioniert erstaunlich gut.
+
+Ist vor allem für die API-Endpunkte der P2PChords server stelle gedacht.
 
 ## Features
 

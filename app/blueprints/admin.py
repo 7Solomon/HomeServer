@@ -26,16 +26,18 @@ def pending_users():
 def approve_user(user_id):
     user = User.query.get_or_404(user_id)
     user.is_approved = True
+    # Commit user approval first
     db.session.commit()
-    
-    # Generate API token for the newly approved user - without user_id parameter
+
+    # Generate API token for the newly approved user - WITH user_id
     token = ApiToken(
         token=secrets.token_hex(32),
+        user_id=user.id, # Associate token with the user
         is_active=True
     )
     db.session.add(token)
     db.session.commit()
-    
+
     flash(f'User {user.username} has been approved')
     return redirect(url_for('admin.pending_users'))
 
@@ -80,22 +82,23 @@ def decline_user(user_id):
 def generate_admin_token():
     # Generate a secure token
     token_value = secrets.token_hex(32)
-    
-    # Create the token with admin privileges
+
+    # Create the token with admin privileges and associate with the admin user
     token = ApiToken(
         token=token_value,
-        user_id=current_user.id, 
+        user_id=current_user.id, # Associate with the admin generating it
         is_active=True,
         is_admin=True
     )
-    
+
     db.session.add(token)
     db.session.commit()
-    
+
     # Store token temporarily in session to display it once
-    session['admin_token'] = token_value
+    # Use a different session key to avoid conflict with auth blueprint
+    session['generated_admin_token'] = token_value
     flash('Admin token generated successfully', 'success')
-    
+
     # Redirect to the token management page instead
     return redirect(url_for('admin.manage_tokens'))
 
@@ -105,14 +108,17 @@ def generate_admin_token():
 def manage_tokens():
     """Show all admin tokens"""
     from datetime import datetime
-    
-    tokens = ApiToken.query.filter_by(is_admin=True).all()
+
+    # Fetch the generated token from session if it exists
+    generated_token = session.pop('generated_admin_token', None)
+
+    tokens = ApiToken.query.filter_by(is_admin=True).order_by(ApiToken.created_at.desc()).all()
     users = User.query.all()
-    
+
     # Create a dictionary of users for easier lookups
     user_dict = {user.id: user for user in users}
-    
-    return render_template('admin/tokens.html', tokens=tokens, users=user_dict, now=datetime.utcnow())
+
+    return render_template('admin/tokens.html', tokens=tokens, users=user_dict, now=datetime.utcnow(), generated_token=generated_token)
 
 @admin_bp.route('/tokens/delete/<int:token_id>', methods=['POST'])
 @login_required

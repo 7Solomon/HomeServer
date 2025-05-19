@@ -92,7 +92,7 @@ endblock %}
         {% for file in files %}
         <div class="file-item" data-id="{{ file.id }}">
             <div class="file-name">
-                <a href="{{ url_for('storage.download', file_id=file.id) }}">
+                <a href="{{ url_for('storage.download_song_data', file_id=file.id, filename=file.name) }}">
                     <i class="fas {{ file_icon(file.name) }}"></i> {{ file.name }}
                 </a>
             </div>

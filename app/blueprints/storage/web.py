@@ -1,7 +1,9 @@
+import uuid
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app import db
 import os
+from werkzeug.utils import secure_filename
 
 from app.blueprints.storage.utils import file_icon, format_size
 from app.blueprints.storage import UPLOAD_FOLDER, storage_bp
@@ -129,6 +131,143 @@ def admin_move_file(file_id):
     # Redirect back to referring page
     referrer = request.referrer or url_for('storage.admin_files')
     return redirect(referrer)
+
+
+# User route to create a new directory
+@storage_bp.route('/admin/directory/create', methods=['POST'])
+@login_required
+@admin_required
+def create_directory():
+    if not current_user.is_approved:
+        flash('Your account is pending approval.', 'error')
+        return redirect(url_for('main.index'))
+
+    name = request.form.get('name')
+    parent_id_str = request.form.get('parent_id') # Will be string "None" or an ID
+
+    # Determine redirect URL based on parent_id for error cases
+    redirect_url = url_for('storage.files')
+    if parent_id_str and parent_id_str != "None" and parent_id_str.isdigit():
+        redirect_url = url_for('storage.directory', dir_id=int(parent_id_str))
+
+    if not name or not name.strip():
+        flash('Directory name cannot be empty.', 'error')
+        return redirect(redirect_url)
+    
+    name = name.strip()
+
+    parent_dir = None
+    parent_id_for_db = None
+    if parent_id_str and parent_id_str != "None" and parent_id_str.isdigit():
+        parent_id = int(parent_id_str)
+        parent_dir = Directory.query.filter_by(id=parent_id, user_id=current_user.id).first()
+        if not parent_dir:
+            flash('Parent directory not found or access denied.', 'error')
+            return redirect(url_for('storage.files')) # Fallback to root if parent_id is problematic
+        parent_id_for_db = parent_dir.id
+    
+    # Check for duplicate directory name within the same parent and for the same user
+    existing_directory = Directory.query.filter_by(
+        name=name,
+        user_id=current_user.id,
+        parent_id=parent_id_for_db
+    ).first()
+
+    if existing_directory:
+        flash(f'A directory named "{name}" already exists here.', 'error')
+        return redirect(redirect_url)
+
+    new_dir = Directory(
+        name=name,
+        user_id=current_user.id,
+        parent_id=parent_id_for_db
+    )
+    db.session.add(new_dir)
+    db.session.commit()
+    flash('Directory created successfully.', 'success')
+
+    return redirect(redirect_url)
+
+# User route to upload a new file
+@storage_bp.route('/admin/file/upload', methods=['POST'])
+@login_required
+@admin_required
+def upload_file():
+    if not current_user.is_approved:
+        flash('Your account is pending approval.', 'error')
+        return redirect(url_for('main.index'))
+
+    # Determine redirect URL based on directory_id for error/success cases
+    directory_id_str = request.form.get('directory_id') # Will be string "None" or an ID
+    redirect_url = url_for('storage.files')
+    target_dir_id_for_db = None
+    target_dir = None
+
+    if directory_id_str and directory_id_str != "None" and directory_id_str.isdigit():
+        directory_id = int(directory_id_str)
+        target_dir = Directory.query.filter_by(id=directory_id, user_id=current_user.id).first()
+        if not target_dir:
+            flash('Target directory not found or access denied.', 'error')
+            return redirect(url_for('storage.files')) # Fallback to root
+        target_dir_id_for_db = target_dir.id
+        redirect_url = url_for('storage.directory', dir_id=target_dir.id)
+
+    if 'file' not in request.files:
+        flash('No file part in the request.', 'error')
+        return redirect(request.referrer or redirect_url)
+
+    file = request.files['file']
+    if file.filename == '':
+        flash('No selected file.', 'error')
+        return redirect(request.referrer or redirect_url)
+
+    if file:
+        original_filename = secure_filename(file.filename)
+        
+        # Check for duplicate file name (original name) within the same directory and for the same user
+        existing_file = File.query.filter_by(
+            name=original_filename,
+            user_id=current_user.id,
+            directory_id=target_dir_id_for_db
+        ).first()
+
+        if existing_file:
+            flash(f'A file named "{original_filename}" already exists in this location.', 'error')
+            return redirect(redirect_url)
+
+        _, extension = os.path.splitext(original_filename)
+        unique_filename_for_storage = str(uuid.uuid4()) + extension
+        
+        file_path_on_disk = os.path.join(UPLOAD_FOLDER, unique_filename_for_storage)
+        
+        try:
+            file.save(file_path_on_disk)
+            file_size = os.path.getsize(file_path_on_disk)
+
+            new_file_db = File(
+                name=original_filename,
+                path=unique_filename_for_storage,
+                size=file_size,
+                user_id=current_user.id,
+                directory_id=target_dir_id_for_db
+            )
+            db.session.add(new_file_db)
+            db.session.commit()
+            flash('File uploaded successfully.', 'success')
+        except Exception as e:
+            if os.path.exists(file_path_on_disk): # Clean up orphaned file
+                try:
+                    os.remove(file_path_on_disk)
+                except OSError:
+                    pass # Ignore if removal fails, but log it
+            flash(f'Error uploading file: {str(e)}', 'error')
+            # Consider logging the error: app.logger.error(f"File upload failed: {e}")
+        
+        return redirect(redirect_url)
+
+    # Fallback redirect
+    return redirect(request.referrer or redirect_url)
+
 
 # Admin route to move directories
 @storage_bp.route('/admin/move/directory/<int:dir_id>', methods=['POST'])

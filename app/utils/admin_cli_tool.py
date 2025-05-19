@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+import secrets
 import click
 from flask.cli import with_appcontext
 
@@ -25,3 +27,31 @@ def create_admin(username, password, first_name, last_name):
     db.session.add(user)
     db.session.commit()
     click.echo(f'Admin user {username} created successfully.')
+
+
+@click.command('create-api-token')
+@click.option('--admin', is_flag=True, help="Create an admin-level API token.")
+@click.option('--days-valid', default=30, type=int, help="Number of days the token will be valid.")
+@with_appcontext
+def create_api_token(admin, days_valid):
+    """Generates a new API token and stores it in the ApiToken table."""
+    from app import db
+    from app.models.token import ApiToken # Import your ApiToken model
+
+    token_string = secrets.token_urlsafe(32) # Generates a URL-safe text string, 43 characters long
+
+    new_api_token = ApiToken(
+        token=token_string,
+        is_admin=admin,
+        is_active=True, # Activate the token immediately
+        expires_at=datetime.now(timezone.utc) + timedelta(days=days_valid)
+    )
+
+    db.session.add(new_api_token)
+    db.session.commit()
+
+    click.echo(f"API Token created successfully!")
+    click.echo(f"{token_string}")
+    click.echo(f"Admin privileges: {'Yes' if admin else 'No'}")
+    click.echo(f"Expires at: {new_api_token.expires_at.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+    click.echo("Store this token securely. It will not be shown again.")

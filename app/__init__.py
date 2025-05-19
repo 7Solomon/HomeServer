@@ -1,5 +1,5 @@
 from datetime import datetime,timezone
-from app.utils.admin_cli_tool import create_admin
+from app.utils.admin_cli_tool import create_admin, create_api_token
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -30,17 +30,20 @@ def create_app(config=None):
 
     # Add Cli
     app.cli.add_command(create_admin)
+    app.cli.add_command(create_api_token)
 
     # Import and register blueprints
     from app.blueprints.main import main_bp
     from app.blueprints.auth import auth_bp
     from app.blueprints.storage import storage_bp
     from app.blueprints.admin import admin_bp
+    #from app.blueprints.predigt_upload import predigt_upload_api_bp
     
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(storage_bp)
     app.register_blueprint(admin_bp, url_prefix="/admin")
+    #app.register_blueprint(predigt_upload_api_bp, url_prefix="/predigt_upload")
     
     # Create database tables
     with app.app_context():
@@ -49,8 +52,6 @@ def create_app(config=None):
         # Import and register dynamic blueprints
         from app.utils.dynamic_blueprints import register_dynamic_blueprints
         register_dynamic_blueprints(app)
-
-    # Add context processor for template variables
     @app.context_processor
     def inject_now():
         return {'now': datetime.now(timezone.utc)}

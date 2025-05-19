@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const progressBar = document.querySelector('.progress-fill');
             const progressText = document.querySelector('.progress-text');
 
-            fetch('/api/upload', {
+            fetch('/admin/file/upload', {
                 method: 'POST',
                 body: formData,
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
             e.preventDefault();
             const formData = new FormData(this);
 
-            fetch('/api/directory/create', {
+            fetch('/admin/directory/create', {
                 method: 'POST',
                 body: formData,
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
@@ -112,8 +112,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Use the admin routes for deletion
             let endpoint = type === 'directory' ?
-                `/api/admin/delete/directory/${id}` :
-                `/api/admin/delete/file/${id}`;
+                `/admin/delete/directory/${id}` :
+                `/admin/delete/file/${id}`;
 
             fetch(endpoint, {
                 method: 'POST',
@@ -173,8 +173,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const targetDirId = document.getElementById('target-directory').value;
 
             let endpoint = type === 'directory' ?
-                `/api/admin/move/directory/${id}` :
-                `/api/admin/move/file/${id}`;
+                `/admin/move/directory/${id}` :
+                `/admin/move/file/${id}`;
 
             const formData = new FormData();
             formData.append(type === 'directory' ? 'parent_id' : 'directory_id', targetDirId);

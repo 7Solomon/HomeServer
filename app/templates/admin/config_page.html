@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Configuration - Home Server{% endblock %}
+
+{% block extra_css %}
+<style>
+    .config-container {
+        background-color: white;
+        padding: 2rem;
+        border-radius: var(--border-radius);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        margin-top: 2rem;
+    }
+
+    .config-container h2 {
+        margin-bottom: 1.5rem;
+    }
+
+    .config-editor textarea {
+        width: 100%;
+        min-height: 300px;
+        font-family: monospace;
+        border: 1px solid #ddd;
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .config-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        /* Align items to the top */
+        gap: 1rem;
+        /* Add some space between elements */
+    }
+
+    .config-actions .form-group {
+        margin-bottom: 0;
+        /* Remove default bottom margin for form-group inside actions */
+    }
+
+    .upload-section {
+        border: 1px solid #ddd;
+        padding: 1rem;
+        border-radius: var(--border-radius);
+        background-color: #f9f9f9;
+        flex-basis: 48%;
+        /* Adjust as needed */
+    }
+
+    .edit-section {
+        border: 1px solid #ddd;
+        padding: 1rem;
+        border-radius: var(--border-radius);
+        background-color: #f9f9f9;
+        flex-basis: 48%;
+        /* Adjust as needed */
+    }
+
+    .edit-section h3,
+    .upload-section h3 {
+        margin-top: 0;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="config-container">
+    <h2>Manage Server Configuration (config.json)</h2>
+
+    <div class="config-actions">
+        <div class="upload-section">
+            <h3>Upload Configuration File</h3>
+            <form method="POST" action="{{ url_for('admin.upload_config') }}" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="config_file">Select config.json file to upload:</label>
+                    <input type="file" id="config_file" name="config_file" class="form-control" accept=".json" required>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-upload"></i> Upload File</button>
+            </form>
+        </div>
+
+        <div class="edit-section">
+            <h3>Edit Configuration Content</h3>
+            <form method="POST" action="{{ url_for('admin.save_config') }}">
+                <div class="form-group">
+                    <label for="config_content">Configuration (JSON format):</label>
+                    <textarea id="config_content" name="config_content" rows="15"
+                        class="form-control">{{ config_content }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="{{ url_for('admin.pending_users') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Admin Panel
+        </a>
+    </div>
+</div>
+{% endblock %}

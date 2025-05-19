@@ -73,6 +73,21 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def login_required(f):
+    """
+    Decorator to ensure the current user is logged in.
+    Redirects to the login page if the user is not authenticated.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            flash('Please log in to access this page.', 'info')
+            # Replace 'auth.login' with your actual login route
+            return redirect(url_for('auth.login', next=request.url)) 
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 def approved_user_required(f):
     @wraps(f)
     @valid_token # Run token validation first, sets g.token_record and g.current_user

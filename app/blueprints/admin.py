@@ -1,12 +1,85 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, session
-from flask_login import login_required, current_user
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, session, current_app
 import secrets
+import os
+import json # Added import
 from app import db
 from app.models.user import User
 from app.models.token import ApiToken
-from app.utils.auth import admin_required
+from app.utils.auth import admin_required, login_required
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+CONFIG_FILENAME = 'instance/config.json'
+
+def get_config_file_path():
+    return os.path.join(current_app.instance_path, CONFIG_FILENAME)
+
+@admin_bp.route('/config', methods=['GET'])
+@login_required
+@admin_required
+def config_page():
+    config_content = ""
+    config_file_path = get_config_file_path()
+    try:
+        if os.path.exists(config_file_path):
+            with open(config_file_path, 'r', encoding='utf-8') as f:
+                config_content = f.read()
+    except Exception as e:
+        flash(f"Error reading config file: {e}", "error")
+    return render_template('admin/config_page.html', config_content=config_content)
+
+@admin_bp.route('/config/upload', methods=['POST'])
+@login_required
+@admin_required
+def upload_config():
+    if 'config_file' not in request.files:
+        flash('No file part in the request.', 'error')
+        return redirect(url_for('admin.config_page'))
+
+    file = request.files['config_file']
+    if file.filename == '':
+        flash('No file selected for uploading.', 'error')
+        return redirect(url_for('admin.config_page'))
+
+    if file and file.filename.endswith('.json'):
+        config_file_path = get_config_file_path()
+        try:
+            # Ensure instance directory exists
+            os.makedirs(current_app.instance_path, exist_ok=True)
+            file.save(config_file_path)
+            flash('Configuration file uploaded successfully.', 'success')
+        except Exception as e:
+            flash(f"Error saving uploaded config file: {e}", "error")
+    else:
+        flash('Invalid file type. Please upload a .json file.', 'error')
+
+    return redirect(url_for('admin.config_page'))
+
+@admin_bp.route('/config/save', methods=['POST'])
+@login_required
+@admin_required
+def save_config():
+    config_data = request.form.get('config_content')
+    if config_data is None:
+        flash('No content received to save.', 'error')
+        return redirect(url_for('admin.config_page'))
+
+    config_file_path = get_config_file_path()
+    try:
+        # Validate if it's valid JSON before saving
+        json.loads(config_data) # This will raise an error if not valid JSON
+        
+        # Ensure instance directory exists
+        os.makedirs(current_app.instance_path, exist_ok=True)
+        with open(config_file_path, 'w', encoding='utf-8') as f:
+            f.write(config_data)
+        flash('Configuration saved successfully.', 'success')
+    except json.JSONDecodeError:
+        flash('Invalid JSON content. Please correct it before saving.', 'error')
+    except Exception as e:
+        flash(f"Error saving configuration: {e}", "error")
+        
+    return redirect(url_for('admin.config_page'))
 
 @admin_bp.route('/pending', methods=['GET'])
 @login_required

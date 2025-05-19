@@ -94,9 +94,9 @@ Diese Endpunkte dienen zum Verwalten von JSON-Dateien (z.B. Song-Metadaten) in e
 *   **Body:** `multipart/form-data` mit einer Datei im Feld `file`.
 *   **Beispiel (`curl`):**
     ```bash
-    curl -X POST \\
-         -H "Authorization: Bearer <your_admin_token>" \\
-         -F "file=@pfad/zu/deiner/song.json" \\
+    curl -X POST \
+         -H "Authorization: Bearer <your_admin_token>" \
+         -F "file=@pfad/zu/deiner/song.json" \
          <your_server_url>/api/song_data
     ```
 
@@ -115,6 +115,73 @@ Diese Endpunkte dienen zum Verwalten von JSON-Dateien (z.B. Song-Metadaten) in e
 *   Ersetze `<your_token>`, `<your_admin_token>`, `<your_server_url>`, `<filename>` und `pfad/zu/deiner/song.json` mit den tatsächlichen Werten.
 *   `<your_server_url>` ist die URL, unter der deine Anwendung läuft (z.B. `http://127.0.0.1:5000`).
 *   Tokens erhältst du über die Login-Endpunkte (`/auth/login`, `/auth/admin`).
+
+## Predigten API (`/api/predigt_upload`)
+
+Diese Endpunkte dienen zur Verwaltung von "Predigten" (Sermons), einschließlich des Herunterladens von YouTube, der Komprimierung und des FTP-Uploads.
+
+**1. YouTube-Livestreams auflisten und Predigt-Einträge erstellen/aktualisieren:**
+
+*   **Methode:** `POST`
+*   **Endpunkt:** `/api/predigt_upload/get_youtube_list/<max_results>`
+    *   `<max_results>`: Die maximale Anzahl der zu prüfenden YouTube-Videos.
+*   **Authentifizierung:** Admin-Token (`Authorization: Bearer <your_admin_token>`)
+*   **Beschreibung:** Ruft die neuesten Livestreams vom konfigurierten YouTube-Kanal ab und erstellt oder aktualisiert entsprechende Einträge in der `Predigt`-Datenbank. Die Antwort enthält eine Liste der gefundenen Videos und Informationen über erstellte Einträge. Die `id` der `Predigt`-Einträge kann für nachfolgende Operationen verwendet werden.
+*   **Beispiel (`curl`):**
+    ```bash
+    curl -X POST \
+         -H "Authorization: Bearer <your_admin_token>" \
+         <your_server_url>/api/predigt_upload/get_youtube_list/10
+    ```
+
+**2. Predigt von YouTube herunterladen (Server-seitig):**
+
+*   **Methode:** `POST`
+*   **Endpunkt:** `/api/predigt_upload/download/<predigt_id>`
+    *   `<predigt_id>`: Die eindeutige ID des `Predigt`-Eintrags (erhalten z.B. über den Endpunkt `get_youtube_list`).
+*   **Authentifizierung:** Admin-Token (`Authorization: Bearer <your_admin_token>`)
+*   **Beschreibung:** Weist den Server an, das Audio der Predigt vom entsprechenden `youtube_url` herunterzuladen und lokal zu speichern. Der Status des `Predigt`-Eintrags wird aktualisiert.
+*   **Antwort:** JSON-Objekt mit einer Erfolgs-/Fehlermeldung und dem Pfad zur heruntergeladenen Datei auf dem Server.
+    ```json
+    {
+      "message": "Video downloaded successfully",
+      "path": "/path/to/downloaded/audio.mp3",
+      "predigt_id": 123
+    }
+    ```
+*   **Beispiel (`curl`):**
+    ```bash
+    curl -X POST \
+         -H "Authorization: Bearer <your_admin_token>" \
+         <your_server_url>/api/predigt_upload/download/123
+    ```
+
+**3. Heruntergeladene Predigt komprimieren und auf FTP hochladen:**
+
+*   **Methode:** `POST`
+*   **Endpunkt:** `/api/predigt_upload/upload_file/<predigt_id>`
+    *   `<predigt_id>`: Die eindeutige ID des `Predigt`-Eintrags, der bereits heruntergeladen wurde.
+*   **Authentifizierung:** Admin-Token (`Authorization: Bearer <your_admin_token>`)
+*   **Body (JSON):** Optional, um `remote_file_name` und `remote_subdir` anzugeben.
+    ```json
+    {
+      "remote_file_name": "MeinePredigt.mp3",
+      "remote_subdir": "predigten/2025"
+    }
+    ```
+*   **Beschreibung:** Komprimiert die lokal gespeicherte Audiodatei für die angegebene `predigt_id` und lädt sie dann auf den konfigurierten FTP-Server hoch. Der Status des `Predigt`-Eintrags wird entsprechend aktualisiert.
+*   **Beispiel (`curl`):**
+    ```bash
+    curl -X POST \
+         -H "Authorization: Bearer <your_admin_token>" \
+         -H "Content-Type: application/json" \
+         -d '{"remote_file_name": "Predigt_vom_Sonntag.mp3", "remote_subdir": "audio/sermons"}' \
+         <your_server_url>/api/predigt_upload/upload_file/123
+    ```
+
+**Wichtige Hinweise für Predigten API:**
+*   Ersetze `<your_admin_token>`, `<your_server_url>` und `<predigt_id>` mit den tatsächlichen Werten.
+*   Stelle sicher, dass die entsprechenden Routen in `app/blueprints/predigt_upload.py` implementiert sind und die `Predigt.id` als primären Identifikator verwenden.
 
 ## Systemanforderungen
 

@@ -1,6 +1,7 @@
 .venv
 instance/
 uploads/
+config.json
 
 
 __pycache__/

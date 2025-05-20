@@ -20,6 +20,10 @@
             <ul>
                 <li><a href="{{ url_for('main.index') }}"><i class="fas fa-home"></i> Dashboard</a></li>
                 <li><a href="{{ url_for('storage.files') }}"><i class="fas fa-file"></i> Dateien</a></li>
+                {% if current_user.is_admin %} {# Or current_user.role == 'admin' #}
+                <li><a href="{{ url_for('storage.p2p_download') }}"><i class="fas fa-desktop"></i> P2P Downloader
+                        Page</a></li>
+                {% endif %}
                 <li><a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Abmelden</a></li>
             </ul>
             {% endif %}

@@ -29,18 +29,9 @@ def valid_token(f):
         token_record = ApiToken.query.filter_by(token=token_str).first()
         if not token_record or not token_record.is_valid():
             return jsonify({'error': 'Invalid or expired token!'}), 401
-
-        user = None
-        if token_record.user_id:
-            user = User.query.get(token_record.user_id)
-            if not user:
-                 # Should not happen if DB is consistent, but handle it
-                 return jsonify({'error': 'User associated with token not found!'}), 401
-
         # Set context for downstream use
         g.token_record = token_record
-        g.current_user = user # Can be None if token has no user_id
-
+       
         return f(*args, **kwargs)
     return decorated_function
 

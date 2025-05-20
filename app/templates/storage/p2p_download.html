@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}P2P Downloader - Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>P2P Anwendungs-Downloader</h2>
+</div>
+
+<div class="admin-content">
+    <p>KA wie ich das beschreiben soll.</p>
+
+    <div style="margin-top: 20px;">
+        <a href="{{ url_for('storage.download_exe') }}" class="button button-primary">
+            <i class="fas fa-download"></i> P2P Downloader herunterladen
+        </a>
+    </div>
+
+    <p style="margin-top: 30px; font-size: 0.9em; color: #666;">
+        <strong>Hinweis:</strong> Joe ist nice
+</div>
+{% endblock %}

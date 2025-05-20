@@ -23,7 +23,7 @@ def is_valid_json_file(filename):
     """Check if file is a JSON file"""
     return filename.lower().endswith('.json')
 
-@storage_bp.route('/api/song_data', methods=['GET'])
+@storage_bp.route('/api/song_data/files', methods=['GET'])
 @valid_token
 def list_song_data():
     """List all JSON files in the song_data folder with their properties"""
@@ -65,8 +65,8 @@ def download_song_data(filename):
     """Download a JSON file from the song_data folder"""
     if not is_valid_json_file(filename):
         return jsonify({'error': 'Only JSON files are allowed'}), 400
-        
-    return send_from_directory(SONG_DATA_FOLDER, filename, as_attachment=True)
+    directory_to_serve_from = os.path.abspath(SONG_DATA_FOLDER)
+    return send_from_directory(directory_to_serve_from, filename, as_attachment=True)
 
 @storage_bp.route('/api/song_data', methods=['POST'])
 @admin_token

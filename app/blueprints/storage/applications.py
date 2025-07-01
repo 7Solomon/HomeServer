@@ -21,3 +21,10 @@ def download_exe():
     """Download the P2PChord downloader file"""
     directory_to_serve_from = os.path.abspath(APPLICATION_FOLDER)
     return send_from_directory(directory_to_serve_from, 'P2PChordsInstaller.exe', as_attachment=True)
+
+@storage_bp.route('/admin/p2p_download/download_apk', methods=['GET'])
+@admin_required
+def download_apk():
+    """Download the P2PChord APK"""
+    directory_to_serve_from = os.path.abspath(APPLICATION_FOLDER)
+    return send_from_directory(directory_to_serve_from, 'P2PChords.apk', as_attachment=True)

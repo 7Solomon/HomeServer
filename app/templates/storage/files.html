@@ -1,41 +1,69 @@
 {% extends "base.html" %}
 
-{% block title %}{% if current_user.is_admin %}Admin Dateiverwaltung{% else %}Dateien{% endif %} - Home Server{%
-endblock %}
+{% block title %}Globaler Datei-Explorer - Home Server{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/storage.css') }}">
+<style>
+    .admin-badge {
+        background: #dc3545;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 0.75em;
+        margin-left: 5px;
+    }
+
+    .owner-info {
+        color: #666;
+        font-size: 0.85em;
+    }
+
+    .global-info {
+        background: #e3f2fd;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        border-left: 4px solid #2196f3;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="files-container">
     <div class="files-header">
-        <h2>{% if current_user.is_admin %}Admin Dateiverwaltung{% else %}Dateiverwaltung{% endif %}</h2>
+        <h2>🌐 Globaler Datei-Explorer</h2>
         <div class="files-actions">
+            {% if current_user.is_admin %}
             <button id="upload-btn" class="btn btn-primary">
                 <i class="fas fa-upload"></i> Hochladen
             </button>
             <button id="new-folder-btn" class="btn">
                 <i class="fas fa-folder-plus"></i> Neuer Ordner
             </button>
+            {% endif %}
         </div>
     </div>
 
+    <div class="global-info">
+        <p><strong>ℹ️ Globaler Zugriff:</strong> Alle authentifizierten Benutzer können hier alle geteilten Dateien
+            durchsuchen und herunterladen.
+            {% if current_user.is_admin %}Als Admin können Sie Dateien verwalten, hochladen und Admin-Only Verzeichnisse
+            erstellen.{% else %}Admins können Dateien und Ordner verwalten.{% endif %}</p>
+    </div>
+
     <div class="breadcrumb">
-        <a href="{{ url_for('storage.admin_files') if current_user.is_admin else url_for('storage.files') }}"><i
-                class="fas fa-home"></i></a>
+        <a href="{{ url_for('storage.files') }}"><i class="fas fa-home"></i></a>
         {% for dir in path %}
         <span class="separator">/</span>
-        <a
-            href="{{ url_for('storage.admin_directory', dir_id=dir.id) if current_user.is_admin else url_for('storage.directory', dir_id=dir.id) }}">{{
-            dir.name }}</a>
+        <a href="{{ url_for('storage.directory', dir_id=dir.id) }}">{{ dir.name }}</a>
         {% endfor %}
     </div>
 
     <div class="files-list">
         <div class="files-list-header">
             <div class="file-name">Name</div>
-            {% if current_user.is_admin %}<div class="file-owner">Besitzer</div>{% endif %}
+            <div class="file-owner">Besitzer</div>
             <div class="file-size">Größe</div>
             <div class="file-date">Datum</div>
             <div class="file-actions">Aktionen</div>
@@ -44,7 +72,7 @@ endblock %}
         {% if parent_dir %}
         <div class="file-item directory back">
             <div class="file-name">
-                <a href="{{ url_for('storage.admin_directory', dir_id=parent_dir.id) }}">
+                <a href="{{ url_for('storage.directory', dir_id=parent_dir.id) }}">
                     <i class="fas fa-arrow-up"></i> ..
                 </a>
             </div>
@@ -58,19 +86,16 @@ endblock %}
         {% for directory in directories %}
         <div class="file-item directory" data-id="{{ directory.id }}">
             <div class="file-name">
-                <a
-                    href="{{ url_for('storage.admin_directory', dir_id=directory.id) if current_user.is_admin else url_for('storage.directory', dir_id=directory.id) }}">
+                <a href="{{ url_for('storage.directory', dir_id=directory.id) }}">
                     <i class="fas fa-folder"></i> {{ directory.name }}
+                    {% if directory.is_admin_only %}<span class="admin-badge">Admin Only</span>{% endif %}
                 </a>
+                <div class="owner-info">von {{ directory.user.username }}</div>
             </div>
-            {% if current_user.is_admin %}<div class="file-owner">{{ directory.user.username }}</div>{% endif %}
+            <div class="file-owner">{{ directory.user.username }}</div>
             <div class="file-size">-</div>
             <div class="file-date">{{ directory.created_at.strftime('%d.%m.%Y') }}</div>
             <div class="file-actions">
-                <button class="action-btn rename-btn" data-type="directory" data-id="{{ directory.id }}"
-                    title="Umbenennen">
-                    <i class="fas fa-edit"></i>
-                </button>
                 {% if current_user.is_admin %}
                 <button class="action-btn move-btn" data-type="directory" data-id="{{ directory.id }}"
                     title="Verschieben">
@@ -80,11 +105,20 @@ endblock %}
                     title="Besitzer ändern">
                     <i class="fas fa-user-edit"></i>
                 </button>
+                <form style="display: inline;" method="POST"
+                    action="{{ url_for('storage.toggle_admin_only', dir_id=directory.id) }}">
+                    <button type="submit" class="action-btn" title="Admin-Only umschalten">
+                        <i class="fas fa-{% if directory.is_admin_only %}unlock{% else %}lock{% endif %}"></i>
+                    </button>
+                </form>
+                <form style="display: inline;" method="POST"
+                    action="{{ url_for('storage.delete_directory', dir_id=directory.id) }}"
+                    onsubmit="return confirm('Ordner &quot;{{ directory.name }}&quot; wirklich löschen?')">
+                    <button type="submit" class="action-btn delete-btn" title="Löschen">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </form>
                 {% endif %}
-                <button class="action-btn delete-btn" data-type="directory" data-id="{{ directory.id }}"
-                    title="Löschen">
-                    <i class="fas fa-trash"></i>
-                </button>
             </div>
         </div>
         {% endfor %}
@@ -92,29 +126,29 @@ endblock %}
         {% for file in files %}
         <div class="file-item" data-id="{{ file.id }}">
             <div class="file-name">
-                <a href="{{ url_for('storage.download_song_data', file_id=file.id, filename=file.name) }}">
+                <a href="{{ url_for('storage.download_file', file_id=file.id) }}">
                     <i class="fas {{ file_icon(file.name) }}"></i> {{ file.name }}
                 </a>
+                <div class="owner-info">von {{ file.user.username }}</div>
             </div>
-            {% if current_user.is_admin %}<div class="file-owner">{{ file.user.username }}</div>{% endif %}
+            <div class="file-owner">{{ file.user.username }}</div>
             <div class="file-size">{{ format_size(file.size) }}</div>
             <div class="file-date">{{ file.created_at.strftime('%d.%m.%Y') }}</div>
             <div class="file-actions">
-                <button class="action-btn rename-btn" data-type="file" data-id="{{ file.id }}" title="Umbenennen">
-                    <i class="fas fa-edit"></i>
-                </button>
                 {% if current_user.is_admin %}
                 <button class="action-btn move-btn" data-type="file" data-id="{{ file.id }}" title="Verschieben">
                     <i class="fas fa-exchange-alt"></i>
                 </button>
-                {% endif %}
-                <button class="action-btn delete-btn" data-type="file" data-id="{{ file.id }}" title="Löschen">
-                    <i class="fas fa-trash"></i>
-                </button>
-                {% if current_user.is_admin %}
                 <button class="action-btn owner-btn" data-type="file" data-id="{{ file.id }}" title="Besitzer ändern">
                     <i class="fas fa-user-edit"></i>
                 </button>
+                <form style="display: inline;" method="POST"
+                    action="{{ url_for('storage.delete_file', file_id=file.id) }}"
+                    onsubmit="return confirm('Datei &quot;{{ file.name }}&quot; wirklich löschen?')">
+                    <button type="submit" class="action-btn delete-btn" title="Löschen">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </form>
                 {% endif %}
             </div>
         </div>
@@ -134,22 +168,20 @@ endblock %}
     <div class="modal-content">
         <span class="close">&times;</span>
         <h3>Datei hochladen</h3>
-        <form id="upload-form" enctype="multipart/form-data">
+        {% if current_user.is_admin %}
+        <form method="POST" action="{{ url_for('storage.upload_file') }}" enctype="multipart/form-data">
             <input type="hidden" name="directory_id" value="{{ current_dir.id if current_dir else '' }}">
             <div class="form-group">
                 <label for="file">Datei auswählen</label>
                 <input type="file" id="file" name="file" required>
             </div>
-            <div class="upload-progress">
-                <div class="progress-bar">
-                    <div class="progress-fill"></div>
-                </div>
-                <div class="progress-text">0%</div>
-            </div>
             <div class="form-group">
                 <button type="submit" class="btn btn-primary">Hochladen</button>
             </div>
         </form>
+        {% else %}
+        <p>Nur Administratoren können Dateien hochladen.</p>
+        {% endif %}
     </div>
 </div>
 
@@ -158,39 +190,29 @@ endblock %}
     <div class="modal-content">
         <span class="close">&times;</span>
         <h3>Neuer Ordner</h3>
-        <form id="folder-form">
+        {% if current_user.is_admin %}
+        <form method="POST" action="{{ url_for('storage.create_directory') }}">
             <input type="hidden" name="parent_id" value="{{ current_dir.id if current_dir else '' }}">
             <div class="form-group">
                 <label for="folder-name">Ordnername</label>
                 <input type="text" id="folder-name" name="name" required>
             </div>
             <div class="form-group">
+                <input type="checkbox" id="is-admin-only" name="is_admin_only">
+                <label for="is-admin-only">Nur für Admins sichtbar</label>
+            </div>
+            <div class="form-group">
                 <button type="submit" class="btn btn-primary">Erstellen</button>
             </div>
         </form>
+        {% else %}
+        <p>Nur Administratoren können Ordner erstellen.</p>
+        {% endif %}
     </div>
 </div>
 
-<!-- Rename Modal -->
-<div id="rename-modal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h3>Umbenennen</h3>
-        <form id="rename-form">
-            <input type="hidden" id="rename-type" name="type">
-            <input type="hidden" id="rename-id" name="id">
-            <div class="form-group">
-                <label for="new-name">Neuer Name</label>
-                <input type="text" id="new-name" name="name" required>
-            </div>
-            <div class="form-group">
-                <button type="submit" class="btn btn-primary">Umbenennen</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Move Modal -->
+<!-- Move Modal (Admin Only) -->
+{% if current_user.is_admin %}
 <div id="move-modal" class="modal">
     <div class="modal-content">
         <span class="close">&times;</span>
@@ -212,7 +234,7 @@ endblock %}
     </div>
 </div>
 
-<!-- Change Owner Modal -->
+<!-- Change Owner Modal (Admin Only) -->
 <div id="owner-modal" class="modal">
     <div class="modal-content">
         <span class="close">&times;</span>
@@ -232,23 +254,7 @@ endblock %}
         </form>
     </div>
 </div>
-
-<!-- Delete Confirmation Modal -->
-<div id="delete-modal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h3>Löschen bestätigen</h3>
-        <p>Möchtest du wirklich <span id="delete-name"></span> löschen?</p>
-        <form id="delete-form">
-            <input type="hidden" id="delete-type" name="type">
-            <input type="hidden" id="delete-id" name="id">
-            <div class="form-actions">
-                <button type="button" class="btn btn-secondary close-btn">Abbrechen</button>
-                <button type="submit" class="btn btn-danger">Löschen</button>
-            </div>
-        </form>
-    </div>
-</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

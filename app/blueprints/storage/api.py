@@ -4,16 +4,12 @@ from flask import jsonify, g, request, send_from_directory
 from werkzeug.utils import secure_filename
 
 from app import db
-# Make sure to import File and Directory models
 from app.models.storage import File, Directory
-from app.models.user import User # Add User import
+from app.models.user import User
 from app.blueprints.storage.utils import delete_directory_recursive, is_descendant # Import helpers
 
-# Use a consistent auth decorator, e.g., approved_user_required assumes it sets g.current_user
 from app.utils.auth import admin_token, valid_token, approved_user_required
 from app.blueprints.storage import UPLOAD_FOLDER, storage_bp
-# Import utility if needed
-# from .utils import allowed_file
 
 # Define the song data folder
 SONG_DATA_FOLDER = os.path.join(UPLOAD_FOLDER, 'song_data')
@@ -128,7 +124,7 @@ def delete_song_data(filename):
 # --- API ENDPOINTS FOR STANDARD FILE/FOLDER OPERATIONS (Called by storage.js) ---
 
 @storage_bp.route('/api/upload', methods=['POST'])
-@approved_user_required # Requires an approved user token, sets g.current_user
+@approved_user_required 
 def api_upload_file():
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400

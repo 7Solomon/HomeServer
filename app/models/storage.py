@@ -8,6 +8,7 @@ class Directory(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey('directory.id'), nullable=True)
+    is_admin_only = db.Column(db.Boolean, default=False, nullable=False)
     
     # Relationships
     files = db.relationship('File', backref='directory', lazy=True)

@@ -12,7 +12,6 @@ from flask.cli import with_appcontext
 @with_appcontext
 def create_admin(username, password, first_name, last_name):
     """Create an admin user."""
-    # Import, Important because circular import issue
     from app import db
     from app.models.user import User
     

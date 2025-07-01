@@ -8,15 +8,20 @@
 </div>
 
 <div class="admin-content">
-    <p>KA wie ich das beschreiben soll.</p>
+    <p>Hier gibt es die Chords</p>
 
     <div style="margin-top: 20px;">
         <a href="{{ url_for('storage.download_exe') }}" class="button button-primary">
-            <i class="fas fa-download"></i> P2P Downloader herunterladen
+            <i class="fas fa-download">PC</i>
+        </a>
+    </div>
+    <div style="margin-top: 20px;">
+        <a href="{{ url_for('storage.download_apk') }}" class="button button-primary">
+            <i class="fas fa-download">Handy</i>
         </a>
     </div>
 
     <p style="margin-top: 30px; font-size: 0.9em; color: #666;">
-        <strong>Hinweis:</strong> Joe ist nice
+        <strong>Hinweis:</strong> neuste version von P2P Downloader herunterladen für PC und Handy
 </div>
 {% endblock %}

@@ -1,27 +1,161 @@
 {% extends "base.html" %}
 
-{% block title %}P2P Downloader - Admin{% endblock %}
+{% block title %}P2P Downloader - Heim Speicher{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/p2p_download.css') }}">
+{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h2>P2P Anwendungs-Downloader</h2>
-</div>
-
-<div class="admin-content">
-    <p>Hier gibt es die Chords</p>
-
-    <div style="margin-top: 20px;">
-        <a href="{{ url_for('storage.download_exe') }}" class="button button-primary">
-            <i class="fas fa-download">PC</i>
-        </a>
-    </div>
-    <div style="margin-top: 20px;">
-        <a href="{{ url_for('storage.download_apk') }}" class="button button-primary">
-            <i class="fas fa-download">Handy</i>
-        </a>
+<div class="p2p-container">
+    <div class="page-header">
+        <div class="header-content">
+            <div class="header-icon">
+                <i class="fas fa-share-alt"></i>
+            </div>
+            <div class="header-text">
+                <h2>P2P Anwendungs-Downloader</h2>
+                <p class="header-subtitle">Laden Sie die neueste Version der P2P Chords Anwendung herunter</p>
+            </div>
+        </div>
     </div>
 
-    <p style="margin-top: 30px; font-size: 0.9em; color: #666;">
-        <strong>Hinweis:</strong> neuste version von P2P Downloader herunterladen für PC und Handy
+    <div class="download-section">
+        <div class="intro-text">
+            <h3>Verfügbare Downloads</h3>
+            <p>Wählen Sie die passende Version für Ihr Gerät aus:</p>
+        </div>
+
+        <div class="download-cards">
+            <div class="download-card">
+                <div class="card-icon">
+                    <i class="fab fa-windows"></i>
+                </div>
+                <div class="card-content">
+                    <h4>Windows PC</h4>
+                    <p>Vollständige Desktop-Anwendung für Windows-Systeme</p>
+                    <div class="card-features">
+                        <span class="feature-tag">
+                            <i class="fas fa-check"></i>
+                            Windows 10/11
+                        </span>
+                        <span class="feature-tag">
+                            <i class="fas fa-check"></i>
+                            64-bit
+                        </span>
+                    </div>
+                </div>
+                <div class="card-action">
+                    <a href="{{ url_for('storage.download_exe') }}" class="btn btn-primary download-btn">
+                        <i class="fas fa-download"></i>
+                        Windows herunterladen
+                    </a>
+                </div>
+            </div>
+
+            <div class="download-card">
+                <div class="card-icon">
+                    <i class="fab fa-linux"></i>
+                </div>
+                <div class="card-content">
+                    <h4>Linux PC</h4>
+                    <p>Native Linux-Anwendung für Desktop-Distributionen</p>
+                    <div class="card-features">
+                        <span class="feature-tag">
+                            <i class="fas fa-check"></i>
+                            Ubuntu/Debian
+                        </span>
+                        <span class="feature-tag">
+                            <i class="fas fa-check"></i>
+                            x86_64
+                        </span>
+                    </div>
+                </div>
+                <div class="card-action">
+                    <a href="{{ url_for('storage.download_linux') }}" class="btn btn-primary download-btn">
+                        <i class="fas fa-download"></i>
+                        Linux herunterladen
+                    </a>
+                </div>
+            </div>
+
+            <div class="download-card">
+                <div class="card-icon">
+                    <i class="fab fa-android"></i>
+                </div>
+                <div class="card-content">
+                    <h4>Android Handy</h4>
+                    <p>Mobile App für Android-Geräte und Tablets</p>
+                    <div class="card-features">
+                        <span class="feature-tag">
+                            <i class="fas fa-check"></i>
+                            Android 8.0+
+                        </span>
+                        <span class="feature-tag">
+                            <i class="fas fa-check"></i>
+                            APK Install
+                        </span>
+                    </div>
+                </div>
+                <div class="card-action">
+                    <a href="{{ url_for('storage.download_apk') }}" class="btn btn-primary download-btn">
+                        <i class="fas fa-download"></i>
+                        Android herunterladen
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div class="info-card">
+                <div class="info-icon">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <div class="info-content">
+                    <h4>Installation & Nutzung</h4>
+                    <ul>
+                        <li><strong>Windows/Linux:</strong> Führen Sie die heruntergeladene Datei aus und folgen Sie den Installationsanweisungen</li>
+                        <li><strong>Android:</strong> Aktivieren Sie "Unbekannte Quellen" in den Einstellungen und installieren Sie die APK-Datei</li>
+                        <li><strong>Sicherheit:</strong> Alle Downloads sind digital signiert und virenfrei</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="version-info">
+                <div class="version-badge">
+                    <i class="fas fa-code-branch"></i>
+                    <span>Version 2.1.0</span>
+                </div>
+                <div class="update-info">
+                    <i class="fas fa-clock"></i>
+                    <span>Letzte Aktualisierung: {{ moment().format('DD.MM.YYYY') }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Download tracking und feedback
+document.querySelectorAll('.download-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        // Visual feedback
+        this.classList.add('downloading');
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Wird heruntergeladen...';
+        
+        // Reset nach 3 Sekunden
+        setTimeout(() => {
+            this.classList.remove('downloading');
+            this.innerHTML = this.dataset.originalText || this.innerHTML;
+        }, 3000);
+        
+        // Speichere original text
+        if (!this.dataset.originalText) {
+            this.dataset.originalText = this.innerHTML;
+        }
+    });
+});
+</script>
 {% endblock %}

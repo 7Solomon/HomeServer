@@ -26,6 +26,8 @@
             <p>Wählen Sie die passende Version für Ihr Gerät aus:</p>
         </div>
 
+        {% if github_available and release_data %}
+        <!-- Show download cards with GitHub data -->
         <div class="download-cards">
             <div class="download-card">
                 <div class="card-icon">
@@ -46,10 +48,17 @@
                     </div>
                 </div>
                 <div class="card-action">
-                    <a href="{{ url_for('storage.download_exe') }}" class="btn btn-primary download-btn">
+                    {% if release_data.assets.windows %}
+                    <a href="{{ release_data.assets.windows.browser_download_url }}" class="btn btn-primary download-btn" target="_blank">
                         <i class="fas fa-download"></i>
                         Windows herunterladen
                     </a>
+                    {% else %}
+                    <a href="{{ release_data.html_url }}" class="btn btn-secondary download-btn" target="_blank">
+                        <i class="fas fa-external-link-alt"></i>
+                        Auf GitHub ansehen
+                    </a>
+                    {% endif %}
                 </div>
             </div>
 
@@ -72,10 +81,17 @@
                     </div>
                 </div>
                 <div class="card-action">
-                    <a href="{{ url_for('storage.download_linux') }}" class="btn btn-primary download-btn">
+                    {% if release_data.assets.linux %}
+                    <a href="{{ release_data.assets.linux.browser_download_url }}" class="btn btn-primary download-btn" target="_blank">
                         <i class="fas fa-download"></i>
                         Linux herunterladen
                     </a>
+                    {% else %}
+                    <a href="{{ release_data.html_url }}" class="btn btn-secondary download-btn" target="_blank">
+                        <i class="fas fa-external-link-alt"></i>
+                        Auf GitHub ansehen
+                    </a>
+                    {% endif %}
                 </div>
             </div>
 
@@ -98,10 +114,17 @@
                     </div>
                 </div>
                 <div class="card-action">
-                    <a href="{{ url_for('storage.download_apk') }}" class="btn btn-primary download-btn">
+                    {% if release_data.assets.android %}
+                    <a href="{{ release_data.assets.android.browser_download_url }}" class="btn btn-primary download-btn" target="_blank">
                         <i class="fas fa-download"></i>
                         Android herunterladen
                     </a>
+                    {% else %}
+                    <a href="{{ release_data.html_url }}" class="btn btn-secondary download-btn" target="_blank">
+                        <i class="fas fa-external-link-alt"></i>
+                        Auf GitHub ansehen
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -124,14 +147,34 @@
             <div class="version-info">
                 <div class="version-badge">
                     <i class="fas fa-code-branch"></i>
-                    <span>Version 2.1.0</span>
+                    <span>{{ release_data.tag_name }}</span>
                 </div>
                 <div class="update-info">
                     <i class="fas fa-clock"></i>
-                    <span>Letzte Aktualisierung: {{ moment().format('DD.MM.YYYY') }}</span>
+                    <span>Veröffentlicht: {{ release_data.published_at or current_date }}</span>
+                </div>
+                <div class="github-link">
+                    <a href="{{ release_data.html_url }}" target="_blank" class="btn btn-secondary">
+                        <i class="fab fa-github"></i>
+                        Auf GitHub ansehen
+                    </a>
                 </div>
             </div>
         </div>
+
+        {% else %}
+        <!-- Fallback if GitHub is not available -->
+        <div class="error-state">
+            <div class="error-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <p>Fehler beim Laden der neuesten Version von GitHub. Verwenden Sie die lokalen Downloads oder versuchen Sie es später erneut.</p>
+            <a href="{{ url_for('storage_bp.p2p_download') }}" class="btn btn-primary">
+                <i class="fas fa-sync-alt"></i>
+                Seite neu laden
+            </a>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -139,22 +182,32 @@
 {% block extra_js %}
 <script>
 // Download tracking und feedback
-document.querySelectorAll('.download-btn').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-        // Visual feedback
-        this.classList.add('downloading');
-        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Wird heruntergeladen...';
-        
-        // Reset nach 3 Sekunden
-        setTimeout(() => {
-            this.classList.remove('downloading');
-            this.innerHTML = this.dataset.originalText || this.innerHTML;
-        }, 3000);
-        
-        // Speichere original text
-        if (!this.dataset.originalText) {
-            this.dataset.originalText = this.innerHTML;
-        }
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.download-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            // Don't show loading for external links
+            if (this.href.includes('github.com') && !this.href.includes('releases/download')) {
+                return;
+            }
+            
+            // Visual feedback for direct downloads
+            this.classList.add('downloading');
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Wird heruntergeladen...';
+            
+            // Reset nach 3 Sekunden
+            setTimeout(() => {
+                this.classList.remove('downloading');
+                this.innerHTML = originalText;
+            }, 3000);
+            
+            // Show success notification
+            if (window.showNotification) {
+                setTimeout(() => {
+                    window.showNotification('Download gestartet', 'success');
+                }, 500);
+            }
+        });
     });
 });
 </script>

@@ -1,0 +1,652 @@
+/* P2P Download Page Styles */
+
+/* Main Container */
+.p2p-container {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    margin: 2rem auto;
+    max-width: 1200px;
+}
+
+.p2p-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-primary);
+}
+
+/* Page Header */
+.page-header {
+    margin-bottom: 3rem;
+    text-align: center;
+}
+
+.header-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-icon {
+    width: 80px;
+    height: 80px;
+    background: var(--gradient-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow-lg);
+}
+
+.header-icon i {
+    font-size: 2.5rem;
+    color: white;
+}
+
+.header-text h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.header-subtitle {
+    font-size: 1.1rem;
+    color: var(--text-light);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Download Section */
+.download-section {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.intro-text {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.intro-text h3 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+}
+
+.intro-text p {
+    font-size: 1rem;
+    color: var(--text-light);
+}
+
+/* Download Cards */
+.download-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.download-card {
+    background: white;
+    border: 2px solid #f1f5f9;
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.download-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--gradient-primary);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.download-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border-color: var(--primary-color);
+}
+
+.download-card:hover::before {
+    transform: scaleX(1);
+}
+
+.card-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem auto;
+    transition: all 0.3s ease;
+}
+
+.download-card:hover .card-icon {
+    background: var(--gradient-primary);
+    transform: scale(1.1);
+}
+
+.card-icon i {
+    font-size: 2rem;
+    color: var(--primary-color);
+    transition: color 0.3s ease;
+}
+
+.download-card:hover .card-icon i {
+    color: white;
+}
+
+.card-content h4 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 0.75rem;
+}
+
+.card-content p {
+    font-size: 1rem;
+    color: var(--text-light);
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.card-features {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.feature-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(102, 126, 234, 0.1);
+    color: var(--primary-color);
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.feature-tag i {
+    font-size: 0.875rem;
+    color: var(--success-color);
+}
+
+.card-action {
+    margin-top: auto;
+}
+
+.download-btn {
+    width: 100%;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: var(--border-radius);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.download-btn.downloading {
+    background: var(--warning-color) !important;
+    transform: scale(0.98);
+}
+
+.download-btn i {
+    margin-right: 0.5rem;
+}
+
+/* Info Section */
+.info-section {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.info-card {
+    background: linear-gradient(135deg, #fefefe 0%, #f8fafc 100%);
+    border: 1px solid #f1f5f9;
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.info-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-secondary);
+}
+
+.info-icon {
+    width: 60px;
+    height: 60px;
+    background: var(--gradient-secondary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-md);
+}
+
+.info-icon i {
+    font-size: 1.5rem;
+    color: white;
+}
+
+.info-content h4 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 1rem;
+}
+
+.info-content ul {
+    list-style: none;
+    padding: 0;
+}
+
+.info-content li {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(241, 245, 249, 0.8);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.info-content li:last-child {
+    border-bottom: none;
+}
+
+.info-content li strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Version Info */
+.version-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.version-badge,
+.update-info {
+    background: white;
+    border: 1px solid #f1f5f9;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+}
+
+.version-badge:hover,
+.update-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.version-badge {
+    background: var(--gradient-success);
+    color: white;
+    border: none;
+}
+
+.version-badge i,
+.update-info i {
+    font-size: 1.25rem;
+    opacity: 0.8;
+}
+
+.version-badge span,
+.update-info span {
+    font-weight: 500;
+    font-size: 1rem;
+}
+
+.update-info {
+    color: var(--text-light);
+}
+
+.update-info i {
+    color: var(--primary-color);
+}
+
+/* Additional styles for loading and error states */
+.loading-state, .error-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-light);
+    background: white;
+    border-radius: var(--border-radius);
+    margin: 2rem auto;
+    max-width: 600px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.loading-spinner i {
+    font-size: 3rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.error-state {
+    color: var(--danger-color);
+}
+
+.error-icon i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.refresh-container {
+    margin-top: 1rem;
+}
+
+.refresh-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+.github-link {
+    margin-top: 1rem;
+}
+
+.github-link .btn {
+    width: 100%;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.download-btn.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .p2p-container {
+        padding: 1rem;
+        margin: 0;
+    }
+
+    .header-text h2 {
+        font-size: 1.75rem;
+    }
+
+    .header-subtitle {
+        font-size: 1rem;
+    }
+
+    .header-icon {
+        width: 60px;
+        height: 60px;
+    }
+
+    .header-icon i {
+        font-size: 2rem;
+    }
+
+    .download-cards {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .download-card {
+        padding: 1.5rem;
+    }
+
+    .card-icon {
+        width: 60px;
+        height: 60px;
+    }
+
+    .card-icon i {
+        font-size: 1.5rem;
+    }
+
+    .card-content h4 {
+        font-size: 1.25rem;
+    }
+
+    .card-features {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .feature-tag {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+    }
+
+    .download-btn {
+        padding: 0.875rem 1.5rem;
+        font-size: 1rem;
+        min-height: 48px;
+    }
+
+    .info-section {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+
+    .info-card {
+        padding: 1.5rem;
+    }
+
+    .info-icon {
+        width: 50px;
+        height: 50px;
+    }
+
+    .info-icon i {
+        font-size: 1.25rem;
+    }
+
+    .version-badge,
+    .update-info {
+        padding: 1.25rem;
+    }
+
+    /* Disable hover effects on mobile */
+    .download-card:hover {
+        transform: none;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .download-card:hover .card-icon {
+        transform: none;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    }
+
+    .download-card:hover .card-icon i {
+        color: var(--primary-color);
+    }
+
+    .version-badge:hover,
+    .update-info:hover {
+        transform: none;
+    }
+}
+
+/* Small Mobile Devices */
+@media (max-width: 480px) {
+    .p2p-container {
+        padding: 0.75rem;
+    }
+
+    .page-header {
+        margin-bottom: 2rem;
+    }
+
+    .header-text h2 {
+        font-size: 1.5rem;
+    }
+
+    .header-subtitle {
+        font-size: 0.9rem;
+    }
+
+    .intro-text h3 {
+        font-size: 1.5rem;
+    }
+
+    .intro-text p {
+        font-size: 0.9rem;
+    }
+
+    .download-card {
+        padding: 1.25rem;
+    }
+
+    .card-content h4 {
+        font-size: 1.1rem;
+    }
+
+    .card-content p {
+        font-size: 0.9rem;
+    }
+
+    .download-btn {
+        font-size: 0.9rem;
+        padding: 0.75rem 1.25rem;
+    }
+
+    .info-card {
+        padding: 1.25rem;
+    }
+
+    .info-content h4 {
+        font-size: 1.1rem;
+    }
+
+    .info-content li {
+        font-size: 0.9rem;
+        padding: 0.5rem 0;
+    }
+
+    .version-badge,
+    .update-info {
+        padding: 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+    .download-btn {
+        min-height: 48px;
+        font-size: 1rem;
+    }
+
+    .feature-tag {
+        min-height: 36px;
+        padding: 0.5rem 1rem;
+    }
+
+    /* Remove hover effects on touch devices */
+    .download-card:hover,
+    .version-badge:hover,
+    .update-info:hover {
+        transform: none;
+    }
+
+    .download-card:hover .card-icon {
+        transform: none;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    }
+
+    .download-card:hover .card-icon i {
+        color: var(--primary-color);
+    }
+}
+
+/* Print Styles */
+@media print {
+    .download-btn,
+    .card-action {
+        display: none !important;
+    }
+
+    .p2p-container {
+        box-shadow: none;
+        border: 1px solid #ccc;
+    }
+
+    .download-card {
+        break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #ccc;
+    }
+
+    .header-icon,
+    .card-icon,
+    .info-icon {
+        print-color-adjust: exact;
+    }
+}
+
+/* Animation for downloading state */
+@keyframes downloadPulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+.download-btn.downloading {
+    animation: downloadPulse 1s infinite;
+}
+
+/* Loading spinner animation */
+.fa-spinner.fa-spin {
+    animation: fa-spin 1s infinite linear;
+}
+
+@keyframes fa-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

@@ -9,8 +9,6 @@ from app.utils.auth import admin_required
 
 auth_bp = Blueprint('auth', __name__)
 
-
-
 # Web interface routes
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():

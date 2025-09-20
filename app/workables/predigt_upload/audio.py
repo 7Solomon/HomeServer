@@ -5,7 +5,6 @@ from app.workables.config.manager import get_config
 import ffmpeg
 
 
-
 def compress_audio(file_name):
     config = get_config() # Load the configuration
 

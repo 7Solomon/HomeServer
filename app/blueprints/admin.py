@@ -9,7 +9,7 @@ from app.utils.auth import admin_required, login_required
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
-CONFIG_FILENAME = 'instance/config.json'
+CONFIG_FILENAME = 'config.json'
 
 def get_config_file_path():
     return os.path.join(current_app.instance_path, CONFIG_FILENAME)

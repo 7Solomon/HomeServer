@@ -1,5 +1,5 @@
 from datetime import datetime,timezone
-from app.utils.admin_cli_tool import create_admin, create_api_token
+from app.utils.admin_cli_tool import create_admin, create_api_token, create_predigt_user
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -31,6 +31,7 @@ def create_app(config=None):
     # Add Cli
     app.cli.add_command(create_admin)
     app.cli.add_command(create_api_token)
+    app.cli.add_command(create_predigt_user)
 
     # Import and register blueprints
     from app.blueprints.main import main_bp

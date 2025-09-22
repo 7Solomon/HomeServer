@@ -1,72 +1,116 @@
 import math
 import os
 import tempfile
+from pathlib import Path
+from typing import Any, Dict, Generator
+from mutagen.mp3 import MP3
+from mutagen.id3 import TIT2, TPE1, TALB, TPE2, COMM, TDRC, TRCK, TCON, TCOP, TYER, TLEN
+
 from app.workables.config.manager import get_config
+from app.workables.predigt_upload.ffmpeg_setup import get_ffmpeg_path  
 import ffmpeg
 
-
 def compress_audio(file_name):
-    config = get_config() # Load the configuration
-
-    # Get data from config, providing defaults if keys are missing
-    threshold_db = config.get('predigt_upload_audio_compression', {}).get('threshold_db', -12) 
-    ratio = config.get('predigt_upload_audio_compression', {}).get('ratio', 4)        
-    attack = config.get('predigt_upload_audio_compression', {}).get('attack', 20)  
-    release = config.get('predigt_upload_audio_compression', {}).get('release', 250)
-
-    temp_file = tempfile.NamedTemporaryFile(suffix='.mp3', delete=False)
-    
-    # Convert threshold_db dB to amplitude ratio if it's a number
-    threshold_amplitude = 0.25 # Default amplitude if conversion fails
-    if isinstance(threshold_db, (int, float)):
-        try:
-            threshold_amplitude = math.pow(10, threshold_db / 20)
-        except OverflowError:
-            print(f"Warning: OverflowError converting threshold_db ({threshold_db}) to amplitude. Using default.")
-    else:
-        print(f"Warning: threshold_db ({threshold_db}) is not a number. Using default amplitude.")
-
+    config = get_config()
 
     try:
-        result = (
-            ffmpeg
-            .input(file_name)
-            .audio
-            .filter('acompressor', threshold=threshold_amplitude, ratio=ratio, attack=attack, release=release)
-            .output(temp_file.name, acodec='libmp3lame', q=0) # Using -q:a 0 for VBR best quality with libmp3lame
-            .overwrite_output()
-            .run(capture_stdout=True, capture_stderr=True)
-        )
-        # ffmpeg output is often on stderr, even for success
-        if result[1]: # Check if there's any stderr output
-            print("FFmpeg stderr:", result[1].decode())
-        
-        # It's safer to close the temp file before trying to replace the original
-        original_temp_name = temp_file.name
-        temp_file.close() 
+        ffmpeg_location = get_ffmpeg_path()
+        print(f"FFmpeg location: {ffmpeg_location}")
+    except FileNotFoundError as e:
+        raise Exception(f"FFmpeg setup failed: {e}")
 
-        # Replace original file with compressed file
-        os.replace(original_temp_name, file_name) # Replaces the original file_name with temp_file.name
+    threshold_db = config.get('threshold_db', -12) 
+    ratio = config.get('ratio', 4)        
+    attack = config.get('attack', 20)  
+    release = config.get('release', 250)
+    temp_file = tempfile.NamedTemporaryFile(suffix='.mp3', delete=False)
+
+    try:
+        ffmpeg_cmd = ffmpeg.input(file_name)
         
-        return file_name # Return the original file name, now pointing to the compressed version
+        # Use custom FFmpeg path if available - ADD THIS
+        if ffmpeg_location:
+            ffmpeg_executable = str(Path(ffmpeg_location) / 'ffmpeg.exe')
+            (
+                ffmpeg_cmd
+                .output(temp_file.name, acodec='libmp3lame', audio_bitrate='128k',
+                        af=f'acompressor=threshold={threshold_db}dB:ratio={ratio}:attack={attack}:release={release}')
+                .overwrite_output()
+                .run(cmd=ffmpeg_executable, capture_stdout=True, capture_stderr=True)
+            )
+        else:
+            # Use system FFmpeg
+            (
+                ffmpeg_cmd
+                .output(temp_file.name, acodec='libmp3lame', audio_bitrate='128k',
+                        af=f'acompressor=threshold={threshold_db}dB:ratio={ratio}:attack={attack}:release={release}')
+                .overwrite_output()
+                .run(capture_stdout=True, capture_stderr=True)
+            )
+        
+        # Rest of your existing code...
+        original_temp_name = temp_file.name
+        temp_file.close()
+        os.replace(original_temp_name, file_name)
+        return file_name
 
     except ffmpeg.Error as e:
-        print("FFmpeg execution error:", e.stderr.decode() if e.stderr else "No stderr")
-        # Clean up temp file if it still exists and ffmpeg failed
-        if os.path.exists(temp_file.name):
-            try:
-                temp_file.close() # Ensure it's closed before unlinking
-                os.unlink(temp_file.name)
-            except Exception as cleanup_e:
-                print(f"Error cleaning up temp file {temp_file.name}: {cleanup_e}")
-        # Do not delete the original input file if compression failed
-        raise
-    except Exception as e:
-        print(f"An unexpected error occurred during compression: {e}")
+        error_msg = e.stderr.decode() if e.stderr else str(e)
+        print(f"FFmpeg Error: {error_msg}")
+        # Cleanup and raise
         if os.path.exists(temp_file.name):
             try:
                 temp_file.close()
                 os.unlink(temp_file.name)
-            except Exception as cleanup_e:
-                print(f"Error cleaning up temp file {temp_file.name} on general error: {cleanup_e}")
+            except:
+                pass
+        raise Exception(f"FFmpeg error: {error_msg}")
+    except Exception as e:
+        print(f"Unexpected error in audio compression: {e}")
+        if os.path.exists(temp_file.name):
+            try:
+                temp_file.close()
+                os.unlink(temp_file.name)
+            except:
+                pass
+        raise
+
+
+def generate_id3_tags(file_path: str, metadata: Dict[str, str]) -> Generator[Dict[str, Any], None, None]:
+    """Generates and applies ID3 tags to an MP3 file."""
+    yield {
+        "step": "Tagging",
+        "status": "in_progress",
+        "message": "Generating and applying ID3 tags..."
+    }
+    try:
+        audio = MP3(file_path)
+        
+        audio['TIT2'] = TIT2(encoding=3, text=metadata.get("title", ""))
+        audio['TPE1'] = TPE1(encoding=3, text=metadata.get("speaker", ""))
+        audio['TDRC'] = TDRC(encoding=3, text=metadata.get("date", "")) # YYYY-MM-DD
+        audio['TYER'] = TYER(encoding=3, text=metadata.get("year", ""))
+
+        # Set static tags
+        audio['TALB'] = TALB(encoding=3, text=metadata.get("album", "Predigten aus Treffpunkt Leben Karlsruhe"))
+        audio['TCON'] = TCON(encoding=3, text=metadata.get("genre", "Predigt Online"))
+        audio['TCOP'] = TCOP(encoding=3, text=metadata.get("copyright", "Treffpunkt Leben Karlsruhe - alle Rechte vorbehalten"))
+
+        # Calculate and set duration
+        duration_ms = int(audio.info.length * 1000)
+        audio['TLEN'] = TLEN(encoding=3, text=str(duration_ms))
+        
+        audio.save()
+        yield {
+            "step": "Tagging",
+            "status": "completed",
+            "message": "ID3 tags applied successfully."
+        }
+    except Exception as e:
+        logging.error(f"Error applying ID3 tags: {e}")
+        yield {
+            "step": "Tagging",
+            "status": "failed",
+            "message": f"Error applying ID3 tags: {e}"
+        }
         raise

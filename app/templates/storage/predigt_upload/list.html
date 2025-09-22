@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Predigt Upload - Heim Speicher{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/predigt_upload_list.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="pu-container">
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-icon">
+        <i class="fab fa-youtube"></i>
+      </div>
+      <div class="header-text">
+        <h2>Predigt Upload</h2>
+        <p class="header-subtitle">Letzte Livestreams vom YouTube-Kanal und Server-Status</p>
+      </div>
+    </div>
+    <div class="controls">
+      <label>
+        Limit
+        <input id="limitInput" type="number" min="1" max="20" step="1" value="7" />
+      </label>
+      <label title="Optional: Nur nötig, wenn der API-Endpunkt admin_token statt Session nutzt">
+        Auth Token (optional)
+        <input id="tokenInput" type="text" placeholder="Admin-Token (optional)" />
+      </label>
+      <button id="refreshBtn" class="btn btn-primary">
+        <i class="fas fa-sync-alt"></i> Aktualisieren
+      </button>
+    </div>
+  </div>
+
+  <div id="alertBox" class="pu-alert" hidden></div>
+
+  <div id="cards" class="pu-cards" aria-live="polite">
+    <!-- Filled by JS -->
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/predigt_upload_list.js') }}"></script>
+{% endblock %}

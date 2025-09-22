@@ -15,6 +15,9 @@ class User(UserMixin, db.Model):
     @property
     def is_admin(self):
         return self.role == 'admin'
+    @property
+    def is_predigt_berechtigt(self):
+        return self.role in ['admin', 'predigt']
     def set_password(self, password):
         """Hash and set the user's password"""
         self.password_hash = generate_password_hash(password)

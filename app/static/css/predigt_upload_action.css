@@ -1,0 +1,204 @@
+.pd-container {
+  max-width: 1200px; /* was 1000px */
+  margin: 0 auto;
+  padding: 1rem;
+}
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color, #ddd);
+  padding-bottom: .75rem;
+}
+.header-content { display: flex; align-items: center; gap: .9rem; }
+.header-icon {
+  width: 44px; height: 44px; display: grid; place-items: center;
+  border-radius: 10px; background: var(--surface-2, rgba(0,0,0,.06));
+  color: #ff0033; font-size: 1.25rem;
+}
+.header-text h2 { margin: 0; }
+.header-subtitle { margin: .2rem 0 0; opacity: .85; font-size: .95rem; }
+
+.controls { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+.controls label { display: flex; flex-direction: column; gap: .25rem; }
+
+.card {
+  background: var(--surface-1, rgba(0,0,0,.03));
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 12px;
+  margin: .9rem 0;
+}
+.card-body { padding: 1rem; }
+
+.summary { display: flex; gap: 1rem; align-items: center; }
+.thumb-wrap { position: relative; width: 240px; height: 135px; flex: 0 0 auto; }
+.thumb {
+  width: 100%; height: 100%; object-fit: cover; border-radius: 10px; display: none;
+}
+.thumb-fallback {
+  width: 100%; height: 100%; border-radius: 10px;
+  background: #fff0f2; color: #e11d48; display: grid; place-items: center;
+  font-size: 1.8rem;
+}
+.summary-text { flex: 1 1 auto; min-width: 0; }
+.summary-title {
+  font-size: 1.2rem; font-weight: 600;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.summary-meta { display: flex; gap: .7rem; margin-top: .35rem; font-size: .95rem; opacity: .9; }
+.summary-id { margin-top: .4rem; opacity: .8; }
+
+.chip {
+  padding: .15rem .5rem; border-radius: 999px; font-size: .78rem;
+  border: 1px solid transparent;
+}
+.chip.ok { background: #ecfdf5; color: #065f46; border-color: #34d399; }
+.chip.bad { background: #fef2f2; color: #991b1b; border-color: #fca5a5; }
+.chip.neutral { background: rgba(0,0,0,.06); }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: .9rem;
+  align-items: end;
+}
+.form-field { display: flex; flex-direction: column; gap: .25rem; }
+.form-actions { display: flex; gap: .6rem; }
+
+.progress-row { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: .5rem; }
+progress { width: 100%; height: 18px; }
+.status-msg { margin-top: .35rem; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.log {
+  margin-top: .5rem; border: 1px solid var(--border-color, #ddd);
+  background: rgba(0,0,0,.04); border-radius: 6px; padding: .7rem;
+  max-height: 260px; overflow: auto; white-space: pre-wrap;
+}
+
+/* Inputs: consistent look + feel */
+.form-field label,
+.controls label {
+  font-weight: 600;
+  color: var(--text-color, inherit);
+  margin-bottom: .25rem;
+}
+
+.form-field input[type="text"],
+.form-field input[type="date"],
+.form-field input[type="number"],
+.form-field input[type="search"],
+.controls input[type="text"],
+.controls input[type="date"],
+.controls input[type="number"],
+.controls input[type="search"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  min-height: 40px;
+  padding: .55rem .75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color, #d0d7de);
+  background: var(--surface-0, #fff);
+  color: inherit;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.form-field input::placeholder,
+.controls input::placeholder {
+  color: var(--text-light, #8a94a6);
+  opacity: .9;
+}
+
+.form-field input:focus-visible,
+.controls input:focus-visible {
+  outline: none;
+  border-color: var(--primary-color, #2563eb);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #2563eb) 25%, transparent);
+}
+
+/* Compact header controls without stretching full width */
+.controls label {
+  gap: .35rem;
+  font-size: .9rem;
+}
+.controls input {
+  min-width: 220px;
+}
+
+/* Slightly larger inputs inside the card form grid */
+.form-grid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+/* Buttons alignment and spacing */
+.form-actions .btn {
+  min-height: 40px;
+  border-radius: 10px;
+}
+
+/* Make title full width */
+.form-field--title { grid-column: 1 / -1; } /* full row on small grids */
+
+/* Two-column row for Prediger + Datum */
+.form-row { 
+  grid-column: 1 / -1;          /* span full form width */
+  display: grid; 
+  gap: .9rem; 
+}
+.form-row--2 { grid-template-columns: 2fr 1fr; } /* Prediger 2x Datum */
+
+/* Actions full width */
+.form-actions { grid-column: 1 / -1; }
+
+/* Stack on narrow screens */
+@media (max-width: 640px) {
+  .form-row--2 { grid-template-columns: 1fr; }
+}
+
+/* Optional: slightly larger title input */
+.form-field--title input { font-size: 1.05rem; }
+
+/* Dark mode friendly surfaces (if your theme sets color-scheme) */
+@media (prefers-color-scheme: dark) {
+  .form-field input,
+  .controls input {
+    background: var(--surface-1, rgba(255,255,255,.04));
+    border-color: color-mix(in srgb, var(--border-color, #30363d) 70%, transparent);
+  }
+}
+
+@media (max-width: 720px) {
+  .thumb-wrap { width: 180px; height: 101px; }
+}
+
+/* Wider form grid on desktop */
+@media (min-width: 900px) {
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(420px, 1fr)); /* was minmax(280px,1fr) */
+  }
+}
+
+/* Make title full row (already present) */
+.form-field--title { grid-column: 1 / -1; }
+
+/* Prediger + Datum side by side; Prediger wider */
+.form-row { 
+  grid-column: 1 / -1;
+  display: grid;
+  gap: .9rem;
+}
+.form-row--2 { grid-template-columns: 2fr 1fr; } /* Prediger 2x Datum */
+
+/* Stack on small screens */
+@media (max-width: 640px) {
+  .form-row--2 { grid-template-columns: 1fr; }
+}
+
+/* Slightly larger input sizing for readability */
+.form-field input[type="text"],
+.form-field input[type="date"] {
+  min-height: 42px;
+  padding: .6rem .8rem;
+  font-size: 1.02rem;
+}

@@ -38,6 +38,11 @@
                 <li><a href="{{ url_for('storage.files') }}" class="{% if request.endpoint == 'storage.files' %}active{% endif %}">
                     <i class="fas fa-folder"></i> Dateien
                 </a></li>
+                {% if current_user.is_predigt_berechtigt %}
+                <li><a href="{{ url_for('storage.predigt_upload') }}" class="{% if request.endpoint == 'storage.predigt_upload' %}active{% endif %}">
+                    <i class="fas fa-upload"></i> Predigt Upload
+                </a></li>
+                {% endif %}
                 {% if current_user.is_admin %}
                 <li><a href="{{ url_for('storage.p2p_download') }}" class="{% if request.endpoint == 'storage.p2p_download' %}active{% endif %}">
                     <i class="fas fa-download"></i> P2P Download
@@ -45,6 +50,7 @@
                 <li><a href="{{ url_for('admin.pending_users') }}" class="{% if 'admin' in request.endpoint %}active{% endif %}">
                     <i class="fas fa-users-cog"></i> Admin
                 </a></li>
+                
                 {% endif %}
                 <li><a href="{{ url_for('auth.logout') }}" class="logout-btn">
                     <i class="fas fa-sign-out-alt"></i> Abmelden

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Predigt Details - Heim Speicher{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/predigt_upload_action.css') }}">
+{% endblock %}
+
+{% block content %}
+<div id="page" class="pd-container" data-id="{{ video_id|default('', true) }}">
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-icon">
+        <i class="fab fa-youtube"></i>
+      </div>
+      <div class="header-text">
+        <h2>Predigt Details</h2>
+        <p class="header-subtitle">Titel, Prediger und Datum prüfen und verarbeiten</p>
+      </div>
+    </div>
+    <div class="controls">
+      <label title="Optional: wird als Authorization und X-Admin-Token gesendet">
+        Auth Token (optional)
+        <input id="tokenInput" type="text" placeholder="Admin-Token">
+      </label>
+    </div>
+  </div>
+
+  <!-- Summary Card -->
+  <div class="card">
+    <div class="card-body summary">
+      <div class="thumb-wrap">
+        <img id="thumb" class="thumb" alt="Thumbnail">
+        <div id="thumbFallback" class="thumb-fallback"><i class="fab fa-youtube"></i></div>
+      </div>
+      <div class="summary-text">
+        <div class="summary-title" id="videoTitle">—</div>
+        <div class="summary-meta">
+          <span><i class="far fa-calendar"></i> <span id="videoDate">—</span></span>
+          <span><i class="far fa-clock"></i> <span id="videoDuration">—</span></span>
+          <span id="cutBadge" class="chip neutral">Dauer unbekannt</span>
+        </div>
+        <div class="summary-id">ID: <code id="videoId">—</code></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Card -->
+  <div class="card">
+    <div class="card-body">
+      <form id="form" class="form-grid">
+        <div class="form-field form-field--title">
+          <label for="titelInput">Predigt Titel</label>
+          <input id="titelInput" type="text" placeholder="Titel" required list="titelOptions">
+          <datalist id="titelOptions"></datalist>
+        </div>
+
+        <!-- NEW: group Prediger + Datum in a 2-column row -->
+        <div class="form-row form-row--2">
+          <div class="form-field">
+            <label for="predigerInput">Prediger</label>
+            <input id="predigerInput" type="text" placeholder="Prediger" required list="predigerOptions">
+            <datalist id="predigerOptions">
+              <option value="Philipp Hönes"></option>
+            </datalist>
+          </div>
+          <div class="form-field">
+            <label for="datumInput">Datum</label>
+            <input id="datumInput" type="date" required>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button id="processBtn" class="btn btn-primary" type="submit">
+            <i class="fas fa-cloud-upload-alt"></i> Verarbeiten & Hochladen
+          </button>
+          <button id="cancelBtn" class="btn" type="button" disabled>Abbrechen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Progress Card -->
+  <div class="card">
+    <div class="card-body">
+      <div class="progress-row">
+        <div><strong>Schritt:</strong> <span id="step">–</span></div>
+        <div><strong>Status:</strong> <span id="status">–</span></div>
+        <div><strong>Fortschritt:</strong> <span id="progressText">0%</span></div>
+      </div>
+      <progress id="progressBar" value="0" max="100"></progress>
+      <div class="status-msg" id="message">–</div>
+      <div class="status-msg"><strong>Ergebnis:</strong> <span id="finalPath">–</span></div>
+
+      <h4>Log</h4>
+      <div id="log" class="log"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/predigt_upload_action.js') }}"></script>
+{% endblock %}

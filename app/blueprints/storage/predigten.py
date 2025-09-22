@@ -13,23 +13,23 @@ from app.workables.predigt_upload.youtube import get_last_livestream_data, downl
 from app.workables.predigt_upload.ftp_handler import list_ftp_files, refresh_website, upload_file_ftp
 from app.workables.predigt_upload.audio import compress_audio, generate_id3_tags
         
-from app.utils.auth import admin_token, admin_required
+from app.utils.auth import admin_token, admin_required, predigt_user_required
 from app.blueprints.storage import storage_bp
 
 
 @storage_bp.route('/admin/predigt_upload/page')
-@admin_required
+@predigt_user_required
 def predigt_upload():
     """List page for predigt upload management."""
     return render_template('storage/predigt_upload/list.html')
 @storage_bp.route('/admin/predigt_upload/item/<string:video_id>', methods=['GET'])
-@admin_required
+@predigt_user_required
 def predigt_upload_item(video_id):
     """Detail page for a single video to process/upload."""
     return render_template('storage/predigt_upload/action.html', video_id=video_id)
 
 
-@admin_token
+@predigt_user_required
 @storage_bp.route('/api/predigt_upload/action/<int:limit>', methods=['GET'])
 def get_action_data(limit):
     """
@@ -86,7 +86,7 @@ def get_action_data(limit):
         logging.exception("Error in /action")
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@admin_required
+@predigt_user_required
 @storage_bp.route('/predigt_upload/audio/process', methods=['POST'])
 def process_audio_stream():
     """
@@ -185,7 +185,7 @@ def process_audio_stream():
     )
 
 
-@admin_required
+@predigt_user_required
 @storage_bp.route('/api/predigt_upload/ftp/upload', methods=['POST'])
 def ftp_upload():
     data = request.get_json(silent=True) or {}

@@ -95,3 +95,19 @@ def approved_user_required(f):
         # g.current_user is already set by valid_token
         return f(*args, **kwargs)
     return decorated_function
+
+def predigt_user_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Check if user is logged in via session
+        if not current_user.is_authenticated:
+            flash('Please log in to access this page.', 'info')
+            return redirect(url_for('auth.login', next=request.url))
+        
+        # Check predigt permission
+        if not current_user.is_predigt_berechtigt:
+            flash('Predigt access required.', 'danger')
+            return redirect(url_for('main.index'))
+        
+        return f(*args, **kwargs)
+    return decorated_function

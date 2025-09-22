@@ -182,6 +182,7 @@
     grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
   }
 }
+
 @media (max-width: 640px) {
   .controls {
     width: 100%;
@@ -189,12 +190,34 @@
     align-items: stretch;
   }
   .pu-cards {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: 1fr; /* Single column instead of minmax */
+  }
+  .pu-card .row1 {
+    flex-direction: column; /* Stack vertically on mobile */
+    gap: .8rem;
+    align-items: flex-start;
   }
   .pu-card .thumb,
   .pu-card .icon {
-    width: 140px;
-    height: 78px;
+    width: 100%; /* Full width of card */
+    height: auto;
+    aspect-ratio: 16/9; /* Maintain aspect ratio */
+    max-width: 280px; /* Prevent it from getting too large */
+  }
+  .pu-container {
+    padding: .5rem; /* Reduce container padding */
+  }
+}
+
+/* Add extra small screen support */
+@media (max-width: 480px) {
+  .pu-card .thumb,
+  .pu-card .icon {
+    max-width: 240px;
+  }
+  .controls input[type="number"],
+  .controls input[type="text"] {
+    min-width: 120px; /* Reduce input width */
   }
 }
 

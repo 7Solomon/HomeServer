@@ -22,6 +22,20 @@
                 </a>
             </div>
         </div>
+        
+        <div class="card">
+            <div class="card-icon">
+                <i class="fas fa-folder-open"></i>
+            </div>
+            <div class="card-content">
+                <h3>Overleaf</h3>
+                <p>Lokaler Latex-Editore</p>
+                <a href="{{ url_for('storage.start_overleaf') }}" class="btn btn-primary">
+                    <i class="fas fa-arrow-right"></i> Overleaf starten
+                </a>
+            </div>
+        </div>
+
 
         {% if current_user.is_admin %}
         <div class="card">

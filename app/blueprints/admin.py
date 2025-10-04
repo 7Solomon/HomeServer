@@ -79,7 +79,7 @@ def save_config():
     except Exception as e:
         flash(f"Error saving configuration: {e}", "error")
         
-    return redirect(url_for('admin.config_page'))
+    return redirect(url_for('admin.config'))
 
 @admin_bp.route('/pending', methods=['GET'])
 @login_required
@@ -91,7 +91,7 @@ def pending_users():
     token = session.pop('token', None)
     
     # Change the template path to use the existing template
-    return render_template('auth/admin.html', users=users, token=token)
+    return render_template('admin/admin.html', users=users, token=token)
 
 @admin_bp.route('/approve/<int:user_id>', methods=['POST'])
 @login_required
@@ -179,19 +179,20 @@ def generate_admin_token():
 @login_required
 @admin_required
 def manage_tokens():
-    """Show all admin tokens"""
-    from datetime import datetime
+    """Show all tokens"""
+    from datetime import datetime, timezone
 
     # Fetch the generated token from session if it exists
     generated_token = session.pop('generated_admin_token', None)
 
-    tokens = ApiToken.query.filter_by(is_admin=True).order_by(ApiToken.created_at.desc()).all()
+    # Get ALL tokens, ordered by creation date (newest first)
+    tokens = ApiToken.query.order_by(ApiToken.created_at.desc()).all()
     users = User.query.all()
 
     # Create a dictionary of users for easier lookups
     user_dict = {user.id: user for user in users}
 
-    return render_template('admin/tokens.html', tokens=tokens, users=user_dict, now=datetime.utcnow(), generated_token=generated_token)
+    return render_template('admin/tokens.html', tokens=tokens, users=user_dict, now=datetime.now(timezone.utc), generated_token=generated_token)
 
 @admin_bp.route('/tokens/delete/<int:token_id>', methods=['POST'])
 @login_required
@@ -205,3 +206,181 @@ def delete_token(token_id):
     
     flash('Token was successfully deleted', 'success')
     return redirect(url_for('admin.manage_tokens'))
+
+@admin_bp.route('/users', methods=['GET'])
+@login_required
+@admin_required
+def manage_users():
+    """Show all users with search and filter capabilities"""
+    from datetime import datetime, timezone
+    
+    # Get search query
+    search_query = request.args.get('search', '').strip()
+    
+    # Get filter parameters
+    status_filter = request.args.get('status', 'all')  # all, approved, pending
+    role_filter = request.args.get('role', 'all')  # all, admin, user, predigt
+    
+    # Start with base query
+    query = User.query
+    
+    # Apply search filter
+    if search_query:
+        search_pattern = f"%{search_query}%"
+        query = query.filter(
+            db.or_(
+                User.username.ilike(search_pattern),
+                User.first_name.ilike(search_pattern),
+                User.last_name.ilike(search_pattern)
+            )
+        )
+    
+    # Apply status filter
+    if status_filter == 'approved':
+        query = query.filter_by(is_approved=True)
+    elif status_filter == 'pending':
+        query = query.filter_by(is_approved=False)
+    
+    # Apply role filter
+    if role_filter != 'all':
+        query = query.filter_by(role=role_filter)
+    
+    # Get all users ordered by creation date
+    users = query.order_by(User.id.desc()).all()
+    
+    # Get token counts per user
+    token_counts = {}
+    for user in users:
+        token_counts[user.id] = ApiToken.query.filter_by(user_id=user.id).count()
+    
+    return render_template('admin/users.html', 
+                         users=users, 
+                         token_counts=token_counts,
+                         search_query=search_query,
+                         status_filter=status_filter,
+                         role_filter=role_filter,
+                         now=datetime.now(timezone.utc))
+
+@admin_bp.route('/users/create', methods=['POST'])
+@login_required
+@admin_required
+def create_user():
+    """Create a new user"""
+    username = request.form.get('username')
+    password = request.form.get('password')
+    first_name = request.form.get('first_name')
+    last_name = request.form.get('last_name')
+    role = request.form.get('role', 'user')
+    is_approved = request.form.get('is_approved') == 'on'
+    
+    # Validation
+    if not all([username, password, first_name, last_name]):
+        flash('Alle Felder sind erforderlich', 'error')
+        return redirect(url_for('admin.manage_users'))
+    
+    # Check if username already exists
+    if User.query.filter_by(username=username).first():
+        flash('Benutzername existiert bereits', 'error')
+        return redirect(url_for('admin.manage_users'))
+    
+    try:
+        # Create new user
+        user = User(
+            username=username,
+            first_name=first_name,
+            last_name=last_name,
+            role=role,
+            is_approved=is_approved
+        )
+        user.set_password(password)
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        flash(f'Benutzer {username} erfolgreich erstellt', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Fehler beim Erstellen des Benutzers: {e}', 'error')
+    
+    return redirect(url_for('admin.manage_users'))
+
+@admin_bp.route('/users/edit/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required
+def edit_user(user_id):
+    """Edit an existing user"""
+    user = User.query.get_or_404(user_id)
+    
+    # Prevent editing yourself
+    from flask_login import current_user
+    if user.id == current_user.id:
+        flash('Sie können Ihr eigenes Konto nicht bearbeiten', 'warning')
+        return redirect(url_for('admin.manage_users'))
+    
+    user.first_name = request.form.get('first_name', user.first_name)
+    user.last_name = request.form.get('last_name', user.last_name)
+    user.role = request.form.get('role', user.role)
+    user.is_approved = request.form.get('is_approved') == 'on'
+    
+    # Update password if provided
+    new_password = request.form.get('password')
+    if new_password:
+        user.set_password(new_password)
+    
+    try:
+        db.session.commit()
+        flash(f'Benutzer {user.username} erfolgreich aktualisiert', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Fehler beim Aktualisieren des Benutzers: {e}', 'error')
+    
+    return redirect(url_for('admin.manage_users'))
+
+@admin_bp.route('/users/delete/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_user(user_id):
+    """Delete a user and all associated data"""
+    user = User.query.get_or_404(user_id)
+    
+    # Prevent deleting yourself
+    from flask_login import current_user
+    if user.id == current_user.id:
+        flash('Sie können Ihr eigenes Konto nicht löschen', 'error')
+        return redirect(url_for('admin.manage_users'))
+    
+    username = user.username
+    
+    try:
+        # Delete associated tokens
+        ApiToken.query.filter_by(user_id=user.id).delete()
+        
+        # Delete the user
+        db.session.delete(user)
+        db.session.commit()
+        
+        flash(f'Benutzer {username} und alle zugehörigen Daten wurden gelöscht', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Fehler beim Löschen des Benutzers: {e}', 'error')
+    
+    return redirect(url_for('admin.manage_users'))
+
+@admin_bp.route('/users/toggle-approval/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required
+def toggle_user_approval(user_id):
+    """Toggle user approval status"""
+    user = User.query.get_or_404(user_id)
+    
+    user.is_approved = not user.is_approved
+    
+    try:
+        db.session.commit()
+        status = "genehmigt" if user.is_approved else "gesperrt"
+        flash(f'Benutzer {user.username} wurde {status}', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Fehler beim Ändern des Status: {e}', 'error')
+    
+    return redirect(url_for('admin.manage_users'))

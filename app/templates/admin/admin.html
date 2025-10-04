@@ -121,6 +121,21 @@
                 </div>
             </div>
 
+            <!-- User Management Card -->
+            <div class="admin-card">
+                <div class="card-icon">
+                    <i class="fas fa-users-cog"></i>
+                </div>
+                <div class="card-content">
+                    <h4>Benutzerverwaltung</h4>
+                    <p>Verwalten Sie alle Benutzer, erstellen Sie neue Konten und bearbeiten Sie Benutzerrechte.</p>
+                    <a href="{{ url_for('admin.manage_users') }}" class="btn btn-info">
+                        <i class="fas fa-users-cog"></i>
+                        Benutzer verwalten
+                    </a>
+                </div>
+            </div>
+
             <!-- Configuration Card -->
             <div class="admin-card">
                 <div class="card-icon">

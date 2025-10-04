@@ -51,11 +51,17 @@
     </div>
 
     <div class="breadcrumb">
-        <a href="{{ url_for('storage.files') }}"><i class="fas fa-home"></i></a>
-        {% for dir in path %}
-        <span class="separator">/</span>
-        <a href="{{ url_for('storage.directory', dir_id=dir.id) }}">{{ dir.name }}</a>
-        {% endfor %}
+        <a href="{{ url_for('storage.files') }}"><i class="fas fa-home"></i> Home</a>
+        {% if path %}
+            {% for dir in path %}
+            <span class="separator">/</span>
+            <a href="{{ url_for('storage.directory', dir_id=dir.id) }}">{{ dir.name }}</a>
+            {% endfor %}
+        {% endif %}
+        {% if current_dir %}
+            <span class="separator">/</span>
+            <span class="current">{{ current_dir.name }}</span>
+        {% endif %}
     </div>
 
     <div class="files-list">

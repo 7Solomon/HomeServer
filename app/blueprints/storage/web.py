@@ -51,38 +51,34 @@ def directory(dir_id):
     
     current_dir = Directory.query.get_or_404(dir_id)
     
-    # Check if user can access this directory
+    # Check admin-only access
     if current_dir.is_admin_only and not current_user.is_admin:
-        flash('Permission denied - Admin only directory.', 'error')
+        flash('You do not have permission to access this directory', 'error')
         return redirect(url_for('storage.files'))
     
-    # Calculate directory path
+    # Build path from root to current directory
     path = []
-    parent = current_dir
+    parent = current_dir.parent
     while parent:
         path.insert(0, parent)
         parent = parent.parent
-
-    # Get subdirectories - filter admin-only for non-admins
-    if current_user.is_admin:
-        directories = Directory.query.filter_by(parent_id=dir_id).all()
-    else:
-        directories = Directory.query.filter_by(parent_id=dir_id, is_admin_only=False).all()
     
-    # Get all files in this directory
+    # Get subdirectories and files
+    directories = Directory.query.filter_by(parent_id=dir_id).all()
     files = File.query.filter_by(directory_id=dir_id).all()
-
-    return render_template(
-        'storage/files.html',
-        files=files,
-        directories=directories,
-        path=path[:-1],
-        current_dir=current_dir,
-        parent_dir=current_dir.parent,
-        file_icon=file_icon,
-        format_size=format_size,
-        is_global_view=True
-    )
+    
+    # Filter admin-only for non-admins
+    if not current_user.is_admin:
+        directories = [d for d in directories if not d.is_admin_only]
+    
+    return render_template('storage/files.html',
+                         current_dir=current_dir,
+                         path=path,  # This is the breadcrumb path
+                         parent_dir=current_dir.parent,
+                         directories=directories,
+                         files=files,
+                         file_icon=file_icon,
+                         format_size=format_size)
 
 # Admin-only routes for file management
 @storage_bp.route('/upload', methods=['POST'])

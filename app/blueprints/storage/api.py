@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from flask import jsonify, g, request, send_from_directory
+from flask import jsonify, g, request, send_from_directory, send_file
 from werkzeug.utils import secure_filename
 
 from app import db
@@ -12,8 +12,8 @@ from app.blueprints.storage.utils import delete_directory_recursive, is_descenda
 from app.utils.auth import admin_token, valid_token, approved_user_required
 from app.blueprints.storage import UPLOAD_FOLDER, storage_bp
 
-# Define the song data folder
-SONG_DATA_FOLDER = os.path.join(UPLOAD_FOLDER, 'song_data')
+# Define the song data folder - convert to absolute path
+SONG_DATA_FOLDER = os.path.abspath(os.path.normpath(os.path.join(UPLOAD_FOLDER, 'song_data')))
 os.makedirs(SONG_DATA_FOLDER, exist_ok=True)
 
 def is_valid_json_file(filename):
@@ -23,47 +23,81 @@ def is_valid_json_file(filename):
 @storage_bp.route('/api/song_data/files', methods=['GET'])
 @valid_token
 def list_song_data():
-    """List all JSON files in the song_data folder with their properties"""
+    """List all JSON files in the song_data folder and subfolders with their properties"""
     if not os.path.exists(SONG_DATA_FOLDER):
         return jsonify({'files': []})
     
     files = []
-    for filename in os.listdir(SONG_DATA_FOLDER):
-        if not is_valid_json_file(filename):
-            continue
-            
-        file_path = os.path.join(SONG_DATA_FOLDER, filename)
-        if os.path.isfile(file_path):
-            try:
-                # Read the JSON file and extract its properties
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    json_content = json.load(f)
+    # Walk through all subdirectories
+    for root, dirs, filenames in os.walk(SONG_DATA_FOLDER):
+        for filename in filenames:
+            if not is_valid_json_file(filename):
+                continue
+                
+            file_path = os.path.join(root, filename)
+            if os.path.isfile(file_path):
+                try:
+                    # Read the JSON file and extract its properties
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        json_content = json.load(f)
 
                     header = json_content.get('header', {})
                     name = header.get('name', 'Unknown')
                     authors = header.get('authors', [])
 
-
-                # Add basic file info
-                file_info = {
-                    'filename': filename,
-                    'name':name,
-                    'authors':authors,
-                }
-                files.append(file_info)
-            except json.JSONDecodeError:
-                continue
+                    # Get relative path from SONG_DATA_FOLDER
+                    relative_path = os.path.relpath(file_path, SONG_DATA_FOLDER)
+                    
+                    # Add basic file info
+                    file_info = {
+                        'filename': filename,
+                        'path': relative_path,  # Include subfolder path
+                        'name': name,
+                        'authors': authors,
+                    }
+                    files.append(file_info)
+                except (json.JSONDecodeError, IOError) as e:
+                    # Skip files that can't be read or parsed
+                    print(f"Error reading {file_path}: {e}")
+                    continue
     
     return jsonify({'files': files})
 
-@storage_bp.route('/api/song_data/<filename>', methods=['GET'])
+
+@storage_bp.route('/api/song_data/<path:filepath>', methods=['GET'])
 @valid_token
-def download_song_data(filename):
-    """Download a JSON file from the song_data folder"""
-    if not is_valid_json_file(filename):
+def download_song_data(filepath):
+    """Download a JSON file from the song_data folder (supports subfolders)"""
+    # Flask already decodes the URL path, so filepath is already decoded
+    # No need to call unquote() again
+    
+    print(f"Received filepath: {filepath}")
+    
+    if not is_valid_json_file(filepath):
         return jsonify({'error': 'Only JSON files are allowed'}), 400
-    directory_to_serve_from = os.path.abspath(SONG_DATA_FOLDER)
-    return send_from_directory(directory_to_serve_from, filename, as_attachment=True)
+    
+    # Normalize path separators to OS-specific format
+    filepath = filepath.replace('/', os.sep)
+    
+    # Construct full path and normalize it
+    full_path = os.path.normpath(os.path.join(SONG_DATA_FOLDER, filepath))
+    print(f"Looking for file at: {full_path}")
+    print(f"File exists: {os.path.exists(full_path)}")
+    
+    # Security check: ensure the path doesn't escape SONG_DATA_FOLDER
+    if not os.path.abspath(full_path).startswith(os.path.abspath(SONG_DATA_FOLDER)):
+        return jsonify({'error': 'Invalid path'}), 400
+    
+    if not os.path.exists(full_path):
+        # List what files actually exist in the directory for debugging
+        directory = os.path.dirname(full_path)
+        if os.path.exists(directory):
+            existing_files = os.listdir(directory)
+            print(f"Files in {directory}: {existing_files}")
+        return jsonify({'error': 'File not found'}), 404
+    
+    # Use send_file instead of send_from_directory for better path handling
+    return send_file(full_path, as_attachment=True, download_name=os.path.basename(full_path))
 
 @storage_bp.route('/api/song_data', methods=['POST'])
 @admin_token

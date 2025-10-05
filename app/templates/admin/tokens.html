@@ -75,21 +75,15 @@
                 </div>
                 
                 <div class="token-status">
-                    {% if token.expires_at and token.expires_at < now %}
-                        <span class="status-badge expired">
-                            <i class="fas fa-clock"></i> Abgelaufen
-                        </span>
+                    {% if token.expires_at and (token.expires_at|make_aware) < now %}
+                        <span class="status-badge expired">Abgelaufen</span>
                     {% elif token.is_active %}
-                        <span class="status-badge active">
-                            <i class="fas fa-check-circle"></i> Aktiv
-                        </span>
+                        <span class="status-badge active">Aktiv</span>
                     {% else %}
-                        <span class="status-badge inactive">
-                            <i class="fas fa-times-circle"></i> Inaktiv
-                        </span>
+                        <span class="status-badge inactive">Inaktiv</span>
                     {% endif %}
                 </div>
-            </div>
+            </div> <!-- MISSING: Close token-card-header -->
 
             <!-- Card Body -->
             <div class="token-card-body">
@@ -157,16 +151,16 @@
                         <div class="info-value">
                             {% if token.expires_at %}
                                 {{ token.expires_at.strftime('%d.%m.%Y %H:%M') }}
-                                {% if token.expires_at < now %}
-                                    <i class="fas fa-exclamation-triangle" style="color: var(--warning-color);"></i>
+                                {% if (token.expires_at|make_aware) < now %}
+                                    <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>
                                 {% endif %}
                             {% else %}
-                                Nie <i class="fas fa-infinity" style="color: var(--success-color);"></i>
+                                Nie <i class="fas fa-infinity" style="color: #10b981;"></i>
                             {% endif %}
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> <!-- Close token-card-body -->
 
             <!-- Card Footer -->
             <div class="token-card-footer">
@@ -181,8 +175,8 @@
                         Löschen
                     </button>
                 </form>
-            </div>
-        </div>
+            </div> <!-- Close token-card-footer -->
+        </div> <!-- Close token-card -->
         {% endfor %}
     </div>
     {% else %}

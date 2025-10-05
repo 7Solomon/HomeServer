@@ -1,7 +1,9 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, session, current_app
 import secrets
 import os
-import json # Added import
+import json
+
+from flask_login import current_user # Added import
 from app import db
 from app.models.user import User
 from app.models.token import ApiToken
@@ -179,9 +181,7 @@ def generate_admin_token():
 @login_required
 @admin_required
 def manage_tokens():
-    """Show all tokens"""
-    from datetime import datetime, timezone
-
+    """Show all tokens (admin and user tokens)"""
     # Fetch the generated token from session if it exists
     generated_token = session.pop('generated_admin_token', None)
 
@@ -192,7 +192,11 @@ def manage_tokens():
     # Create a dictionary of users for easier lookups
     user_dict = {user.id: user for user in users}
 
-    return render_template('admin/tokens.html', tokens=tokens, users=user_dict, now=datetime.now(timezone.utc), generated_token=generated_token)
+    # Remove 'now' from here since it's injected globally
+    return render_template('admin/tokens.html', 
+                         tokens=tokens, 
+                         users=user_dict, 
+                         generated_token=generated_token)
 
 @admin_bp.route('/tokens/delete/<int:token_id>', methods=['POST'])
 @login_required
@@ -384,3 +388,23 @@ def toggle_user_approval(user_id):
         flash(f'Fehler beim Ändern des Status: {e}', 'error')
     
     return redirect(url_for('admin.manage_users'))
+
+@admin_bp.route('/profile')
+@login_required
+def profile():
+    """User profile page"""
+    from app.models.token import ApiToken
+    
+    # Get user's tokens
+    user_tokens = ApiToken.query.filter_by(user_id=current_user.id).order_by(ApiToken.created_at.desc()).all()
+    
+    # Get user's file/directory counts
+    from app.models.storage import File, Directory
+    file_count = File.query.filter_by(user_id=current_user.id).count()
+    directory_count = Directory.query.filter_by(user_id=current_user.id).count()
+    
+    # Remove 'now' from here
+    return render_template('auth/profile.html', 
+                         user_tokens=user_tokens,
+                         file_count=file_count,
+                         directory_count=directory_count)

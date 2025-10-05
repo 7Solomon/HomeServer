@@ -12,6 +12,16 @@ login_manager = LoginManager()
 def create_app(config=None):
     """Create and configure the Flask application"""
     app = Flask(__name__)
+
+    @app.template_filter('make_aware')
+    def make_aware_filter(dt):
+        """Make a naive datetime timezone-aware (assume UTC)"""
+        if dt is None:
+            return None
+        if hasattr(dt, 'tzinfo') and dt.tzinfo is None:
+            from datetime import timezone
+            return dt.replace(tzinfo=timezone.utc)
+        return dt
     
     # Default configuration
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")

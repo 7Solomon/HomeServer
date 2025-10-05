@@ -158,3 +158,80 @@ def api_generate_admin_token():
         'token': token_value
     })
 
+@auth_bp.route('/profile')
+@login_required
+def profile():
+    """User profile page"""
+    from datetime import datetime, timezone
+    from app.models.token import ApiToken
+    
+    # Get user's tokens
+    user_tokens = ApiToken.query.filter_by(user_id=current_user.id).order_by(ApiToken.created_at.desc()).all()
+    
+    # Get user's file/directory counts
+    from app.models.storage import File, Directory
+    file_count = File.query.filter_by(user_id=current_user.id).count()
+    directory_count = Directory.query.filter_by(user_id=current_user.id).count()
+    
+    return render_template('auth/profile.html', 
+                         user_tokens=user_tokens,
+                         file_count=file_count,
+                         directory_count=directory_count,
+                         now=datetime.now(timezone.utc))
+
+@auth_bp.route('/profile/update', methods=['POST'])
+@login_required
+def update_profile():
+    """Update user profile information"""
+    first_name = request.form.get('first_name')
+    last_name = request.form.get('last_name')
+    
+    if first_name:
+        current_user.first_name = first_name
+    if last_name:
+        current_user.last_name = last_name
+    
+    try:
+        db.session.commit()
+        flash('Profil erfolgreich aktualisiert', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Fehler beim Aktualisieren des Profils: {str(e)}', 'error')
+    
+    return redirect(url_for('auth.profile'))
+
+@auth_bp.route('/profile/change-password', methods=['POST'])
+@login_required
+def change_password():
+    """Change user password"""
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+    
+    # Validation
+    if not all([current_password, new_password, confirm_password]):
+        flash('Alle Felder sind erforderlich', 'error')
+        return redirect(url_for('auth.profile'))
+    
+    if not current_user.check_password(current_password):
+        flash('Aktuelles Passwort ist falsch', 'error')
+        return redirect(url_for('auth.profile'))
+    
+    if new_password != confirm_password:
+        flash('Neue Passwörter stimmen nicht überein', 'error')
+        return redirect(url_for('auth.profile'))
+    
+    if len(new_password) < 6:
+        flash('Passwort muss mindestens 6 Zeichen lang sein', 'error')
+        return redirect(url_for('auth.profile'))
+    
+    try:
+        current_user.set_password(new_password)
+        db.session.commit()
+        flash('Passwort erfolgreich geändert', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Fehler beim Ändern des Passworts: {str(e)}', 'error')
+    
+    return redirect(url_for('auth.profile'))
+

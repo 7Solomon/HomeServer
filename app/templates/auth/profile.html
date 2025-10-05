@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Mein Profil - Heim Speicher{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="header-content">
+            <div class="header-icon">
+                <i class="fas fa-user-circle"></i>
+            </div>
+            <div class="header-text">
+                <h2>Mein Profil</h2>
+                <p class="header-subtitle">Verwalten Sie Ihre Kontoinformationen und Einstellungen</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="profile-grid">
+        <!-- User Information Card -->
+        <div class="profile-card">
+            <div class="card-header">
+                <h3><i class="fas fa-user"></i> Benutzerinformationen</h3>
+            </div>
+            <div class="card-body">
+                <div class="info-group">
+                    <label>Benutzername</label>
+                    <div class="info-value">
+                        <i class="fas fa-user-circle"></i>
+                        {{ current_user.username }}
+                    </div>
+                </div>
+                
+                <div class="info-group">
+                    <label>Vollständiger Name</label>
+                    <div class="info-value">
+                        <i class="fas fa-id-card"></i>
+                        {{ current_user.first_name }} {{ current_user.last_name }}
+                    </div>
+                </div>
+                
+                <div class="info-group">
+                    <label>Rolle</label>
+                    <div class="info-value">
+                        <span class="role-badge role-{{ current_user.role }}">
+                            {% if current_user.is_admin %}
+                                <i class="fas fa-shield-alt"></i> Administrator
+                            {% elif current_user.is_predigt_berechtigt %}
+                                <i class="fas fa-book"></i> Predigt-Berechtigt
+                            {% else %}
+                                <i class="fas fa-user"></i> Benutzer
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="info-group">
+                    <label>Status</label>
+                    <div class="info-value">
+                        {% if current_user.is_approved %}
+                            <span class="status-badge approved">
+                                <i class="fas fa-check-circle"></i> Genehmigt
+                            </span>
+                        {% else %}
+                            <span class="status-badge pending">
+                                <i class="fas fa-clock"></i> Ausstehend
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <button type="button" class="btn btn-secondary" onclick="openEditModal()">
+                    <i class="fas fa-edit"></i> Informationen bearbeiten
+                </button>
+            </div>
+        </div>
+
+        <!-- Statistics Card -->
+        <div class="profile-card">
+            <div class="card-header">
+                <h3><i class="fas fa-chart-bar"></i> Statistiken</h3>
+            </div>
+            <div class="card-body">
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-file"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">{{ file_count }}</div>
+                        <div class="stat-label">Hochgeladene Dateien</div>
+                    </div>
+                </div>
+                
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-folder"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">{{ directory_count }}</div>
+                        <div class="stat-label">Erstellte Ordner</div>
+                    </div>
+                </div>
+                
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-key"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">{{ user_tokens|length }}</div>
+                        <div class="stat-label">API-Tokens</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Card -->
+        <div class="profile-card">
+            <div class="card-header">
+                <h3><i class="fas fa-shield-alt"></i> Sicherheit</h3>
+            </div>
+            <div class="card-body">
+                <div class="security-info">
+                    <i class="fas fa-lock"></i>
+                    <p>Ändern Sie Ihr Passwort, um Ihr Konto zu schützen</p>
+                </div>
+                
+                <button type="button" class="btn btn-primary" onclick="openPasswordModal()">
+                    <i class="fas fa-key"></i> Passwort ändern
+                </button>
+            </div>
+        </div>
+
+        <!-- API Tokens Card -->
+        {% if user_tokens %}
+        <div class="profile-card full-width">
+            <div class="card-header">
+                <h3><i class="fas fa-key"></i> Meine API-Tokens</h3>
+            </div>
+            <div class="card-body">
+                <div class="tokens-list">
+                    {% for token in user_tokens %}
+                    <div class="token-item">
+                        <div class="token-info">
+                            <div class="token-type">
+                                {% if token.is_admin %}
+                                    <span class="token-badge admin">
+                                        <i class="fas fa-shield-alt"></i> Admin Token
+                                    </span>
+                                {% else %}
+                                    <span class="token-badge user">
+                                        <i class="fas fa-user"></i> Benutzer Token
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <div class="token-preview">
+                                <code>{{ token.token[:12] }}...{{ token.token[-12:] }}</code>
+                            </div>
+                            <div class="token-meta">
+                                <span><i class="fas fa-calendar"></i> Erstellt: {{ token.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                                {% if token.expires_at %}
+                                <span><i class="fas fa-clock"></i> Läuft ab: {{ token.expires_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="token-status">
+                            {% if token.expires_at and token.expires_at < now %}
+                                <span class="status-badge expired">Abgelaufen</span>
+                            {% elif token.is_active %}
+                                <span class="status-badge active">Aktiv</span>
+                            {% else %}
+                                <span class="status-badge inactive">Inaktiv</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Logout Card -->
+        <div class="profile-card danger-card">
+            <div class="card-header">
+                <h3><i class="fas fa-sign-out-alt"></i> Abmelden</h3>
+            </div>
+            <div class="card-body">
+                <p>Beenden Sie Ihre aktuelle Sitzung</p>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-danger">
+                    <i class="fas fa-sign-out-alt"></i> Jetzt abmelden
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-edit"></i> Profil bearbeiten</h3>
+            <button class="close-btn" onclick="closeEditModal()">&times;</button>
+        </div>
+        <form action="{{ url_for('auth.update_profile') }}" method="post">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Vorname</label>
+                    <input type="text" name="first_name" value="{{ current_user.first_name }}" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Nachname</label>
+                    <input type="text" name="last_name" value="{{ current_user.last_name }}" required class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Abbrechen</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Speichern
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div id="passwordModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-key"></i> Passwort ändern</h3>
+            <button class="close-btn" onclick="closePasswordModal()">&times;</button>
+        </div>
+        <form action="{{ url_for('auth.change_password') }}" method="post">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Aktuelles Passwort</label>
+                    <input type="password" name="current_password" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Neues Passwort</label>
+                    <input type="password" name="new_password" required class="form-control" minlength="6">
+                </div>
+                <div class="form-group">
+                    <label>Neues Passwort bestätigen</label>
+                    <input type="password" name="confirm_password" required class="form-control" minlength="6">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closePasswordModal()">Abbrechen</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Passwort ändern
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+{% endblock %}

@@ -52,8 +52,8 @@
                 </a></li>
                 
                 {% endif %}
-                <li><a href="{{ url_for('auth.logout') }}" class="logout-btn">
-                    <i class="fas fa-sign-out-alt"></i> Abmelden
+                <li><a href="{{ url_for('auth.profile') }}" class="{% if request.endpoint == 'auth.profile' %}active{% endif %}">
+                    <i class="fas fa-user-circle"></i> Profil
                 </a></li>
             </ul>
             {% endif %}

@@ -23,6 +23,62 @@ const colors = [
     'rgba(255, 159, 64, 0.3)',
 ];
 
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    if (!container) {
+        console.warn('Toast container not found');
+        return;
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    let icon = 'bi-info-circle';
+    let bgColor = '#667eea';
+    
+    if (type === 'success') {
+        icon = 'bi-check-circle';
+        bgColor = '#10b981';
+    } else if (type === 'danger' || type === 'error') {
+        icon = 'bi-x-circle';
+        bgColor = '#ef4444';
+    } else if (type === 'warning') {
+        icon = 'bi-exclamation-triangle';
+        bgColor = '#f59e0b';
+    }
+    
+    toast.innerHTML = `
+        <i class="bi ${icon}" style="margin-right: 0.5rem;"></i>
+        <span>${message}</span>
+    `;
+    
+    toast.style.cssText = `
+        background: ${bgColor};
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        animation: slideIn 0.3s ease-out;
+        min-width: 300px;
+        max-width: 500px;
+    `;
+    
+    container.appendChild(toast);
+    
+    // Auto-remove after 4 seconds
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, 4000);
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     canvas = document.getElementById('imageCanvas');
@@ -50,6 +106,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const finalizeBtn = document.getElementById('finalizeBtn');
     if (finalizeBtn) finalizeBtn.addEventListener('click', finalizeSong);
+    
+    const finalizeUploadBtn = document.getElementById('finalizeUploadBtn');
+    if (finalizeUploadBtn) finalizeUploadBtn.addEventListener('click', finalizeAndUpload);
 
     const prevBtn = document.getElementById('prevPageBtn');
     const nextBtn = document.getElementById('nextPageBtn');
@@ -77,16 +136,19 @@ function loadImage(file) {
         img.onload = function() {
             currentImage = img;
             currentPdfDoc = null;
-            document.getElementById('pdfNavigation').classList.add('d-none');
+            const pdfNav = document.getElementById('pdfNavigation');
+            if (pdfNav) {
+                pdfNav.style.display = 'none';
+            }
             
             canvas.width = img.width;
             canvas.height = img.height;
             redrawCanvas();
             
-            document.getElementById('uploadArea').classList.add('d-none');
-            document.getElementById('canvasArea').classList.remove('d-none');
+            document.getElementById('uploadArea').style.display = 'none';
+            document.getElementById('canvasArea').style.display = 'block';
             
-            showToast('Image loaded successfully', 'success');
+            showToast('Bild erfolgreich geladen', 'success');
         };
         img.src = event.target.result;
     };
@@ -95,7 +157,7 @@ function loadImage(file) {
 
 async function loadPdf(file) {
     try {
-        showToast('Loading PDF...', 'info');
+        showToast('PDF wird geladen...', 'info');
         
         const arrayBuffer = await file.arrayBuffer();
         const loadingTask = pdfjsLib.getDocument({data: arrayBuffer});
@@ -105,18 +167,21 @@ async function loadPdf(file) {
         totalPdfPages = pdf.numPages;
         currentPdfPage = 1;
         
-        document.getElementById('pdfNavigation').classList.remove('d-none');
+        const pdfNav = document.getElementById('pdfNavigation');
+        if (pdfNav) {
+            pdfNav.style.display = 'inline-block';
+        }
         updatePdfPageInfo();
         
         await renderPdfPage(currentPdfPage);
         
-        document.getElementById('uploadArea').classList.add('d-none');
-        document.getElementById('canvasArea').classList.remove('d-none');
+        document.getElementById('uploadArea').style.display = 'none';
+        document.getElementById('canvasArea').style.display = 'block';
         
-        showToast(`PDF loaded: ${totalPdfPages} page(s)`, 'success');
+        showToast(`PDF geladen: ${totalPdfPages} Seite(n)`, 'success');
     } catch (error) {
         console.error('Error loading PDF:', error);
-        showToast('Failed to load PDF: ' + error.message, 'danger');
+        showToast('PDF konnte nicht geladen werden: ' + error.message, 'danger');
     }
 }
 
@@ -183,7 +248,10 @@ function loadPageSections(pageNum) {
     selectedSection = null;
     updateSectionsList();
     redrawCanvas();
-    document.getElementById('sectionDetails').classList.add('d-none');
+    const details = document.getElementById('sectionDetails');
+    if (details) {
+        details.style.display = 'none';
+    }
 }
 
 function updatePdfPageInfo() {
@@ -313,14 +381,15 @@ function updateSectionsList() {
     count.textContent = totalSections;
 
     if (sections.length === 0) {
-        const pageInfo = currentPdfDoc ? ` on page ${currentPdfPage}` : '';
-        list.innerHTML = `<div class="list-group-item text-center text-muted">No sections${pageInfo}. Draw on the image to create sections.</div>`;
+        const pageInfo = currentPdfDoc ? ` auf Seite ${currentPdfPage}` : '';
+        list.innerHTML = `<div style="text-align: center; padding: 2rem; color: #718096;">Noch keine Abschnitte${pageInfo}. Zeichnen Sie auf das Bild, um Abschnitte zu erstellen.</div>`;
         
         // Check if there are sections on other pages
         const allProcessed = Object.values(allSections).every(pageSections => 
             pageSections.every(s => s.ocrResult && !s.processing)
         );
         document.getElementById('finalizeBtn').disabled = !allProcessed || totalSections === 0;
+        document.getElementById('finalizeUploadBtn').disabled = !allProcessed || totalSections === 0;
         return;
     }
 
@@ -328,32 +397,46 @@ function updateSectionsList() {
         pageSections.every(s => s.ocrResult && !s.processing)
     );
     document.getElementById('finalizeBtn').disabled = !allProcessed || totalSections === 0;
+    document.getElementById('finalizeUploadBtn').disabled = !allProcessed || totalSections === 0;
     
     list.innerHTML = sections.map(section => {
         let statusBadge = '';
+        let statusColor = '';
+        let statusIcon = '';
+        let statusText = '';
+        
         if (section.processing) {
-            statusBadge = '<span class="badge bg-warning"><i class="bi bi-hourglass-split"></i> Processing...</span>';
+            statusColor = '#f59e0b';
+            statusIcon = 'bi-hourglass-split';
+            statusText = 'Verarbeitung...';
         } else if (section.ocrResult) {
-            statusBadge = '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Ready</span>';
+            statusColor = '#10b981';
+            statusIcon = 'bi-check-circle';
+            statusText = 'Bereit';
         } else {
-            statusBadge = '<span class="badge bg-danger"><i class="bi bi-x-circle"></i> Failed</span>';
+            statusColor = '#ef4444';
+            statusIcon = 'bi-x-circle';
+            statusText = 'Fehler';
         }
+        
+        statusBadge = `<span style="background: ${statusColor}; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;"><i class="bi ${statusIcon}"></i> ${statusText}</span>`;
 
         return `
-            <div class="list-group-item section-item ${selectedSection?.id === section.id ? 'active' : ''}" 
-                 onclick="selectSection(${section.id})">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="section-color-indicator rounded" style="background-color: ${section.color}"></span>
+            <div class="section-item ${selectedSection?.id === section.id ? 'active' : ''}" 
+                 onclick="selectSection(${section.id})"
+                 style="padding: 1rem 1.5rem; border-bottom: 1px solid #e2e8f0; cursor: pointer;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span class="section-color-indicator" style="background-color: ${section.color}"></span>
                         <strong>${section.name}</strong>
-                        ${section.pageNumber ? `<span class="badge bg-secondary">p.${section.pageNumber}</span>` : ''}
+                        ${section.pageNumber ? `<span style="background: #6b7280; color: white; padding: 0.25rem 0.5rem; border-radius: 8px; font-size: 0.75rem;">S.${section.pageNumber}</span>` : ''}
                     </div>
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-primary" onclick="event.stopPropagation(); reprocessSection(${section.id})" 
-                                ${section.processing ? 'disabled' : ''} title="Reprocess">
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="ocr-btn ocr-btn-sm" onclick="event.stopPropagation(); reprocessSection(${section.id})" 
+                                ${section.processing ? 'disabled' : ''} title="Neu verarbeiten" style="padding: 0.25rem 0.5rem;">
                             <i class="bi bi-arrow-clockwise"></i>
                         </button>
-                        <button class="btn btn-outline-danger" onclick="event.stopPropagation(); deleteSection(${section.id})" title="Delete">
+                        <button class="ocr-btn ocr-btn-sm ocr-btn-danger" onclick="event.stopPropagation(); deleteSection(${section.id})" title="Löschen" style="padding: 0.25rem 0.5rem;">
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>
@@ -374,16 +457,14 @@ function showSectionDetails(section) {
     const detailName = document.getElementById('detailSectionName');
     const detailContent = document.getElementById('detailContent');
 
-    detailsCard.classList.remove('d-none');
+    detailsCard.style.display = 'block';
     detailName.textContent = section.name;
 
     if (section.processing) {
         detailContent.innerHTML = `
-            <div class="text-center p-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Processing...</span>
-                </div>
-                <p class="mt-3 text-muted">Processing OCR...</p>
+            <div style="text-align: center; padding: 2rem;">
+                <div style="border: 3px solid #667eea; border-top-color: transparent; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                <p style="margin-top: 1rem; color: #718096;">OCR wird verarbeitet...</p>
             </div>
         `;
     } else if (section.ocrResult) {
@@ -415,7 +496,7 @@ function showSectionDetails(section) {
                             lastCharPos = charPos + item.chord.length;
                         });
                         
-                        previewHtml += `<div class="preview-line text-primary fw-bold">${escapeHtml(chordLine)}</div>`;
+                        previewHtml += `<div class="preview-line" style="color: #667eea; font-weight: bold;">${escapeHtml(chordLine)}</div>`;
                     }
                 } else if (line.type === 'lyrics') {
                     // Concatenate lyric content
@@ -427,7 +508,7 @@ function showSectionDetails(section) {
             // Fallback: Use plain text with preserved spacing
             const lines = section.ocrResult.text.split('\n');
             previewHtml = lines.map(line => {
-                // Better chord line detection - check if it's mostly short tokens or numbers
+                // Better chord line detection
                 const tokens = line.trim().split(/\s+/);
                 const avgTokenLength = tokens.length > 0 
                     ? tokens.reduce((sum, t) => sum + t.length, 0) / tokens.length 
@@ -435,35 +516,35 @@ function showSectionDetails(section) {
                 const isChordLine = tokens.length > 0 && avgTokenLength < 4 && 
                     tokens.some(t => /^[\d#bmaug\-dim°ø+()\/]+$/.test(t) || !isNaN(t));
                 
-                const lineClass = isChordLine ? 'text-primary fw-bold' : '';
-                return `<div class="preview-line ${lineClass}">${escapeHtml(line) || '&nbsp;'}</div>`;
+                const lineStyle = isChordLine ? 'color: #667eea; font-weight: bold;' : '';
+                return `<div class="preview-line" style="${lineStyle}">${escapeHtml(line) || '&nbsp;'}</div>`;
             }).join('');
         }
 
         detailContent.innerHTML = `
-            <div class="mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <strong>OCR Result:</strong>
-                    <button class="btn btn-sm btn-outline-primary" onclick="editSection(${section.id})">
-                        <i class="bi bi-pencil"></i> Edit
+            <div style="margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <strong>OCR Ergebnis:</strong>
+                    <button class="ocr-btn ocr-btn-sm" onclick="editSection(${section.id})" style="padding: 0.375rem 0.75rem;">
+                        <i class="bi bi-pencil"></i> Bearbeiten
                     </button>
                 </div>
-                <div class="ocr-preview bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto;">
+                <div class="ocr-preview" style="max-height: 400px; overflow-y: auto;">
                     ${previewHtml}
                 </div>
             </div>
-            <div class="mb-2">
-                <strong>Confidence:</strong> ${(section.ocrResult.confidence * 100).toFixed(1)}%
+            <div style="margin-bottom: 0.75rem;">
+                <strong>Genauigkeit:</strong> ${(section.ocrResult.confidence * 100).toFixed(1)}%
             </div>
-            <div class="mb-2">
+            <div style="margin-bottom: 0.75rem;">
                 <strong>Position:</strong> (${Math.round(section.x)}, ${Math.round(section.y)})
             </div>
             <div>
-                <strong>Size:</strong> ${Math.round(section.width)} × ${Math.round(section.height)}px
+                <strong>Größe:</strong> ${Math.round(section.width)} × ${Math.round(section.height)}px
             </div>
         `;
     } else {
-        detailContent.innerHTML = '<div class="alert alert-danger">OCR processing failed. Click reprocess to try again.</div>';
+        detailContent.innerHTML = '<div style="background: #fee2e2; border: 1px solid #fca5a5; padding: 1rem; border-radius: 8px; color: #991b1b;">OCR-Verarbeitung fehlgeschlagen. Klicken Sie auf "Neu verarbeiten".</div>';
     }
 }
 
@@ -481,22 +562,22 @@ function editSection(sectionId) {
     const currentText = section.ocrResult.text || '';
 
     detailContent.innerHTML = `
-        <div class="mb-3">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <strong>Edit OCR Result:</strong>
-                <div class="btn-group btn-group-sm">
-                    <button class="btn btn-success" onclick="saveEdit(${section.id})">
-                        <i class="bi bi-check-lg"></i> Save
+        <div style="margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <strong>OCR bearbeiten:</strong>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="ocr-btn ocr-btn-sm" onclick="saveEdit(${section.id})" style="background: #10b981; color: white; padding: 0.375rem 0.75rem;">
+                        <i class="bi bi-check-lg"></i> Speichern
                     </button>
-                    <button class="btn btn-secondary" onclick="cancelEdit(${section.id})">
-                        <i class="bi bi-x-lg"></i> Cancel
+                    <button class="ocr-btn ocr-btn-sm" onclick="cancelEdit(${section.id})" style="background: #6b7280; color: white; padding: 0.375rem 0.75rem;">
+                        <i class="bi bi-x-lg"></i> Abbrechen
                     </button>
                 </div>
             </div>
-            <textarea id="editTextArea" class="form-control font-monospace" rows="15" style="font-size: 14px;">${escapeHtml(currentText)}</textarea>
-            <small class="text-muted mt-2 d-block">
+            <textarea id="editTextArea" style="width: 100%; font-family: 'Courier New', Courier, monospace; white-space: pre; min-height: 300px; padding: 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px;">${escapeHtml(currentText)}</textarea>
+            <small style="color: #718096; font-size: 0.875rem; margin-top: 0.5rem; display: block;">
                 <i class="bi bi-info-circle"></i> 
-                Keep chord lines and lyric lines on separate lines. Maintain spacing for chord positions.
+                Akkordzeilen und Textzeilen in separaten Zeilen halten. Abstände für Akkordpositionen beibehalten.
             </small>
         </div>
     `;
@@ -656,17 +737,20 @@ async function reprocessSection(sectionId) {
 }
 
 function deleteSection(sectionId) {
-    if (confirm('Delete this section?')) {
+    if (confirm('Diesen Abschnitt löschen?')) {
         sections = sections.filter(s => s.id !== sectionId);
-        saveCurrentPageSections(); // Save after deleting
+        saveCurrentPageSections();
         
         if (selectedSection?.id === sectionId) {
             selectedSection = null;
-            document.getElementById('sectionDetails').classList.add('d-none');
+            const details = document.getElementById('sectionDetails');
+            if (details) {
+                details.style.display = 'none';
+            }
         }
         updateSectionsList();
         redrawCanvas();
-        showToast('Section deleted', 'info');
+        showToast('Abschnitt gelöscht', 'info');
     }
 }
 
@@ -676,14 +760,17 @@ function toggleSections() {
 }
 
 function clearAll() {
-    if (confirm('Clear all sections from ALL pages and start over?')) {
+    if (confirm('Alle Abschnitte von ALLEN Seiten löschen und neu beginnen?')) {
         sections = [];
         allSections = {};
         selectedSection = null;
         updateSectionsList();
         redrawCanvas();
-        document.getElementById('sectionDetails').classList.add('d-none');
-        showToast('All sections cleared', 'info');
+        const details = document.getElementById('sectionDetails');
+        if (details) {
+            details.style.display = 'none';
+        }
+        showToast('Alle Abschnitte gelöscht', 'info');
     }
 }
 
@@ -692,7 +779,7 @@ async function finalizeSong() {
     const songKey = document.getElementById('songKey').value.trim();
     
     if (!songName || !songKey) {
-        showToast('Please enter song name and key', 'warning');
+        showToast('Bitte geben Sie Songname und Tonart ein', 'warning');
         return;
     }
     
@@ -707,7 +794,7 @@ async function finalizeSong() {
     
     const unprocessed = allSectionsFlat.filter(s => !s.ocrResult || s.processing);
     if (unprocessed.length > 0) {
-        showToast(`${unprocessed.length} section(s) not ready. Please wait or reprocess.`, 'warning');
+        showToast(`${unprocessed.length} Abschnitt(e) nicht bereit. Bitte warten oder erneut verarbeiten.`, 'warning');
         return;
     }
     
@@ -718,7 +805,7 @@ async function finalizeSong() {
     }));
     
     try {
-        showToast('Finalizing song...', 'info');
+        showToast('Song wird finalisiert...', 'info');
         
         const response = await fetch('/ocr/api/finalize-song', {
             method: 'POST',
@@ -745,30 +832,116 @@ async function finalizeSong() {
             a.click();
             URL.revokeObjectURL(url);
             
-            showToast('🎵 Song finalized and downloaded!', 'success');
+            showToast('🎵 Song finalisiert und heruntergeladen!', 'success');
         } else {
-            throw new Error(data.error || 'Finalization failed');
+            throw new Error(data.error || 'Finalisierung fehlgeschlagen');
         }
         
     } catch (error) {
         console.error('Error:', error);
-        showToast('Failed to finalize: ' + error.message, 'danger');
+        showToast('Finalisierung fehlgeschlagen: ' + error.message, 'danger');
     }
 }
 
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = `toast align-items-center text-white bg-${type} border-0`;
-    toast.setAttribute('role', 'alert');
-    toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">${message}</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-        </div>
-    `;
-    container.appendChild(toast);
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
-    toast.addEventListener('hidden.bs.toast', () => toast.remove());
+async function finalizeAndUpload() {
+    const songName = document.getElementById('songName').value.trim();
+    const songKey = document.getElementById('songKey').value.trim();
+    
+    if (!songName || !songKey) {
+        showToast('Bitte geben Sie Songname und Tonart ein', 'warning');
+        return;
+    }
+    
+    // Save current page before finalizing
+    saveCurrentPageSections();
+    
+    // Collect all sections from all pages
+    const allSectionsFlat = [];
+    Object.keys(allSections).sort((a, b) => parseInt(a) - parseInt(b)).forEach(pageNum => {
+        allSectionsFlat.push(...allSections[pageNum]);
+    });
+    
+    const unprocessed = allSectionsFlat.filter(s => !s.ocrResult || s.processing);
+    if (unprocessed.length > 0) {
+        showToast(`${unprocessed.length} Abschnitt(e) nicht bereit. Bitte warten oder erneut verarbeiten.`, 'warning');
+        return;
+    }
+    
+    const sectionsData = allSectionsFlat.map(s => ({
+        section_name: s.name,
+        structured_data: s.ocrResult.structured_data,
+        page_number: s.pageNumber
+    }));
+    
+    try {
+        showToast('Song wird hochgeladen...', 'info');
+        
+        const response = await fetch('/ocr/api/finalize-and-upload', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + (localStorage.getItem('token') || ''),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                sections: sectionsData,
+                title: songName,
+                key: songKey,
+                authors: []
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('🎵 Song erfolgreich in Ordner gespeichert!', 'success');
+        } else {
+            throw new Error(data.error || 'Upload fehlgeschlagen');
+        }
+        
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Upload fehlgeschlagen: ' + error.message, 'danger');
+    }
 }
+
+// Add CSS animation for spinner
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+    
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+    }
+`;
+document.head.appendChild(style);

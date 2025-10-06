@@ -1,14 +1,19 @@
-import os
-import uuid
 from datetime import datetime
-from flask import jsonify, request, send_file
+import uuid
+from flask import jsonify, request, send_file, g
+from flask_login import current_user
 from werkzeug.utils import secure_filename
 from app.blueprints.ocr import ocr_bp, OCR_UPLOAD_FOLDER
 from app.blueprints.ocr.functions.chord_utils import ChordUtils
-from app.blueprints.ocr.functions.converter import finalize_song_data, merge_ocr_sections, parse_raw_text_to_preliminary
+from app.blueprints.ocr.functions.converter import finalize_song_data, merge_ocr_sections, parse_ocr_section_to_preliminary, parse_raw_text_to_preliminary, preliminary_to_structured, rebuild_plain_text
 from app.utils.auth import approved_user_required
-
-
+from app import db
+from app.models.storage import Directory, File as StorageFile
+from app.blueprints.storage import UPLOAD_FOLDER
+import hashlib
+import json
+import os
+import re
 import cv2
 from app.blueprints.ocr.utils import process_ocr_result, get_ocr_reader
 
@@ -293,99 +298,107 @@ def edit_section():
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'Edit parsing failed: {str(e)}'}), 500
-
-
-def preliminary_to_structured(prelim_section, key):
-    """
-    Convert PreliminarySection back to structured OCR data format.
-    """
-    lines = []
     
-    for line in prelim_section.lines:
-        if line.is_chord_line:
-            # Parse chord tokens and their positions
-            chord_content = []
-            import re
-            for match in re.finditer(r'\S+', line.text):
-                chord_text = match.group(0)
-                position = match.start()
-                
-                # Check if it's a traditional chord OR a Nashville number
-                is_nashville_number = re.match(r'^[b#]?[1-7][maug\-dim°ø+()\/\d]*$', chord_text)
-                is_traditional_chord = ChordUtils.is_potential_chord_token(chord_text)
-                
-                if is_traditional_chord:
-                    # Convert traditional chord to Nashville
-                    nashville = ChordUtils.chord_to_nashville(chord_text, key)
-                    chord_content.append({
-                        'position_x': position * 10,  # Convert char to pixel
-                        'chord': nashville,
-                        'original': chord_text,
-                        'confidence': line.certainty
-                    })
-                elif is_nashville_number:
-                    # Already a Nashville number, keep as-is
-                    chord_content.append({
-                        'position_x': position * 10,
-                        'chord': chord_text,  # Keep the Nashville notation
-                        'original': chord_text,
-                        'confidence': line.certainty
-                    })
+
+@ocr_bp.route('/api/finalize-and-upload', methods=['POST'])
+@approved_user_required
+def finalize_and_upload():
+    """
+    Finalize song and upload to ocr folder, registering it in the database.
+    """
+    data = request.get_json()
+    
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    
+    sections = data.get('sections', [])
+    title = data.get('title', 'Untitled')
+    key = data.get('key', 'C')
+    authors = data.get('authors', [])
+    
+    if not sections:
+        return jsonify({'error': 'No sections provided'}), 400
+    
+    try:
+        # Convert sections to preliminary format
+        preliminary_sections = []
+        for section_data in sections:
+            section_name = section_data.get('section_name', 'Section')
+            structured_data = section_data.get('structured_data', {})
             
-            if chord_content:
-                lines.append({
-                    'index': len(lines),
-                    'type': 'chords',
-                    'content': chord_content
-                })
-        else:
-            # Lyric line
-            lines.append({
-                'index': len(lines),
-                'type': 'lyrics',
-                'content': [{
-                    'text': line.text,
-                    'confidence': line.certainty
-                }]
-            })
-    
-    return {
-        'section_name': prelim_section.title,
-        'key': key,
-        'lines': lines,
-        'chords': [l for l in lines if l['type'] == 'chords'],
-        'lyrics': [l for l in lines if l['type'] == 'lyrics']
-    }
-
-
-def rebuild_plain_text(structured_data):
-    """
-    Rebuild plain text from structured data with proper spacing.
-    """
-    plain_text = ""
-    
-    for line in structured_data['lines']:
-        if line['type'] == 'lyrics':
-            plain_text += " ".join([item['text'] for item in line['content']]) + "\n"
-        elif line['type'] == 'chords':
-            chord_items = line['content']
-            
-            if chord_items:
-                positions = [item['position_x'] for item in chord_items]
-                min_pos = min(positions)
-                avg_char_width = 10
-                
-                chord_line = ""
-                last_char_pos = 0
-                
-                for item in chord_items:
-                    pixel_pos = item['position_x']
-                    char_pos = int((pixel_pos - min_pos) / avg_char_width)
-                    spaces_needed = max(1, char_pos - last_char_pos)
-                    
-                    chord_line += " " * spaces_needed + item['chord']
-                    last_char_pos = char_pos + len(item['chord'])
-                
-                plain_text += chord_line + "\n"
-    
-    return plain_text.strip()
+            prelim_section = parse_ocr_section_to_preliminary(section_name, structured_data)
+            if prelim_section and prelim_section.lines:
+                preliminary_sections.append(prelim_section)
+        
+        # Finalize the song
+        song_dict = finalize_song_data(preliminary_sections, title, key, authors)
+        
+        # Ensure ocr directory exists in database (at root level)
+        ocr_dir = Directory.query.filter_by(name='ocr', parent_id=None).first()
+        if not ocr_dir:
+            ocr_dir = Directory(
+                name='ocr',
+                user_id=current_user.id,
+                parent_id=None,
+                is_admin_only=False
+            )
+            db.session.add(ocr_dir)
+            db.session.flush()  # Get the ID
+        
+        # Create safe filename
+        safe_filename = secure_filename(title)
+        if not safe_filename:
+            safe_filename = 'untitled'
+        
+        # Ensure .json extension
+        if not safe_filename.endswith('.json'):
+            safe_filename += '.json'
+        
+        # Check for duplicate filename and add number if needed
+        base_name = safe_filename[:-5]  # Remove .json
+        counter = 1
+        final_display_name = safe_filename
+        
+        while StorageFile.query.filter_by(name=final_display_name, directory_id=ocr_dir.id).first():
+            final_display_name = f"{base_name}_{counter}.json"
+            counter += 1
+        
+        # Generate unique filename for storage (like the storage upload does)
+        import uuid
+        _, extension = os.path.splitext(final_display_name)
+        unique_filename = str(uuid.uuid4()) + extension
+        
+        # Physical file path - store directly in UPLOAD_FOLDER like other files
+        physical_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+        
+        # Save the JSON file
+        with open(physical_path, 'w', encoding='utf-8') as f:
+            json.dump(song_dict, f, ensure_ascii=False, indent=2)
+        
+        # Get file size
+        file_size = os.path.getsize(physical_path)
+        
+        # Create database entry
+        # Path is just the unique filename (not a subdirectory path)
+        new_file = StorageFile(
+            name=final_display_name,  # Display name (what user sees)
+            path=unique_filename,      # Actual filename on disk
+            size=file_size,
+            user_id=current_user.id,
+            directory_id=ocr_dir.id    # This puts it in the 'ocr' folder virtually
+        )
+        db.session.add(new_file)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Song successfully uploaded',
+            'filename': final_display_name,
+            'file_id': new_file.id
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Finalization failed: {str(e)}'}), 500

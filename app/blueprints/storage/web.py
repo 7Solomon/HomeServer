@@ -368,13 +368,26 @@ def download_file(file_id):
         return redirect(url_for('storage.files'))
     
     try:
-        from flask import send_from_directory
-        return send_from_directory(
-            os.path.abspath(UPLOAD_FOLDER), 
-            file.path, 
+        from flask import send_file
+        # Construct full path - file.path is relative to UPLOAD_FOLDER
+        full_path = os.path.join(UPLOAD_FOLDER, file.path)
+        
+        # Debug logging
+        #print(f"Attempting to download file: {file.name}")
+        #print(f"File path in DB: {file.path}")
+        #print(f"Full path: {full_path}")
+        #print(f"File exists: {os.path.exists(full_path)}")
+        
+        if not os.path.exists(full_path):
+            flash('File not found on disk.', 'error')
+            return redirect(request.referrer or url_for('storage.files'))
+        
+        return send_file(
+            full_path,
             as_attachment=True, 
             download_name=file.name
         )
-    except FileNotFoundError:
-        flash('File not found on disk.', 'error')
+    except Exception as e:
+        print(f"Error downloading file: {str(e)}")
+        flash(f'Error downloading file: {str(e)}', 'error')
         return redirect(request.referrer or url_for('storage.files'))

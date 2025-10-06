@@ -1,75 +1,338 @@
-        body {
-            background-color: #f8f9fa;
-        }
-        
-        #imageCanvas {
-            cursor: crosshair;
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            max-width: 100%;
-            display: block;
-        }
-        
-        .section-item {
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .section-item:hover {
-            background-color: #f8f9fa;
-            transform: translateX(2px);
-        }
-        
-        .section-item.active {
-            background-color: #e7f3ff;
-            border-left: 4px solid #0d6efd;
-        }
-        
-        .section-color-indicator {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-            display: inline-block;
-            border: 1px solid #ddd;
-        }
-        
-        .upload-area {
-            min-height: 400px;
-            border: 3px dashed #dee2e6;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .upload-area:hover {
-            border-color: #0d6efd;
-            background-color: #f8f9fa;
-        }
-        
-        .canvas-container {
-            position: relative;
-            overflow: auto;
-            max-height: 600px;
-            background-color: #fff;
-            border-radius: 8px;
-            padding: 10px;
-        }
-        
-        .processing-badge {
-            animation: pulse 1.5s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        .sticky-sidebar {
-            position: sticky;
-            top: 20px;
-            max-height: calc(100vh - 40px);
-            overflow-y: auto;
-        }
+.ocr-wrapper {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Page Header */
+.ocr-page-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.ocr-header-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+}
+
+.ocr-header-icon i {
+    font-size: 2.5rem;
+    color: white;
+}
+
+.ocr-header-text h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+}
+
+.ocr-header-subtitle {
+    font-size: 1.1rem;
+    color: #718096;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Grid Layout */
+.ocr-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 2rem;
+}
+
+/* Cards */
+.ocr-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.ocr-card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ocr-card-header h5 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.ocr-header-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.ocr-card-body {
+    padding: 1.5rem;
+}
+
+/* Upload Area */
+.upload-area {
+    min-height: 400px;
+    border: 3px dashed #cbd5e0;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #fafafa;
+}
+
+.upload-area:hover {
+    border-color: #667eea;
+    background-color: #f0f4ff;
+}
+
+/* Canvas */
+.canvas-container {
+    overflow: auto;
+    max-height: 600px;
+    border-radius: 8px;
+    background: #f8f9fa;
+    padding: 10px;
+}
+
+#imageCanvas {
+    cursor: crosshair;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    max-width: 100%;
+    display: block;
+}
+
+/* Alert */
+.ocr-alert-info {
+    background: linear-gradient(135deg, #e6f2ff 0%, #f0f7ff 100%);
+    border: 1px solid #bde0ff;
+    border-left: 4px solid #667eea;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+/* Form Elements */
+.ocr-form-group {
+    margin-bottom: 1.5rem;
+}
+
+.ocr-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #2d3748;
+}
+
+.ocr-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.2s;
+}
+
+.ocr-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Sections List */
+.ocr-sections-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.section-item {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+}
+
+.section-item:hover {
+    background-color: #f7fafc;
+    transform: translateX(3px);
+    border-left-color: #667eea;
+}
+
+.section-item.active {
+    background-color: #edf2f7;
+    border-left-color: #667eea;
+}
+
+.section-color-indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-right: 0.75rem;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    vertical-align: middle;
+}
+
+/* Buttons */
+.ocr-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.ocr-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ocr-btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    background: white;
+    color: #667eea;
+}
+
+.ocr-btn-danger {
+    background: #e53e3e;
+    color: white;
+}
+
+.ocr-btn-large {
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+    width: 100%;
+    justify-content: center;
+}
+
+.ocr-btn-success {
+    background: #48bb78;
+    color: white;
+}
+
+.ocr-btn-success:not(:disabled):hover {
+    background: #38a169;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+}
+
+.ocr-btn-primary {
+    background: #667eea;
+    color: white;
+}
+
+.ocr-btn-primary:not(:disabled):hover {
+    background: #5568d3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.ocr-button-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Badge */
+.ocr-badge {
+    background: white;
+    color: #667eea;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+/* Preview */
+.ocr-preview {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    white-space: pre;
+    overflow-x: auto;
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 6px;
+}
+
+.preview-line {
+    white-space: pre;
+    font-family: 'Courier New', Courier, monospace;
+    min-height: 1.8em;
+}
+
+#editTextArea {
+    width: 100%;
+    font-family: 'Courier New', Courier, monospace;
+    white-space: pre;
+    overflow-wrap: normal;
+    overflow-x: auto;
+    line-height: 1.6;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1rem;
+    min-height: 300px;
+}
+
+/* Toast */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.toast {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .ocr-content-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .ocr-right-column {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .ocr-wrapper {
+        padding: 1rem;
+    }
+    
+    .ocr-header-text h2 {
+        font-size: 1.5rem;
+    }
+    
+    .ocr-button-group {
+        grid-template-columns: 1fr;
+    }
+}

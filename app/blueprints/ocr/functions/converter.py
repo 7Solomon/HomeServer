@@ -267,3 +267,99 @@ def finalize_song_data(
         "data": data
     }
     return song_dict
+
+
+def preliminary_to_structured(prelim_section, key):
+    """
+    Convert PreliminarySection back to structured OCR data format.
+    """
+    lines = []
+    
+    for line in prelim_section.lines:
+        if line.is_chord_line:
+            # Parse chord tokens and their positions
+            chord_content = []
+            import re
+            for match in re.finditer(r'\S+', line.text):
+                chord_text = match.group(0)
+                position = match.start()
+                
+                # Check if it's a traditional chord OR a Nashville number
+                is_nashville_number = re.match(r'^[b#]?[1-7][maug\-dim°ø+()\/\d]*$', chord_text)
+                is_traditional_chord = ChordUtils.is_potential_chord_token(chord_text)
+                
+                if is_traditional_chord:
+                    # Convert traditional chord to Nashville
+                    nashville = ChordUtils.chord_to_nashville(chord_text, key)
+                    chord_content.append({
+                        'position_x': position * 10,  # Convert char to pixel
+                        'chord': nashville,
+                        'original': chord_text,
+                        'confidence': line.certainty
+                    })
+                elif is_nashville_number:
+                    # Already a Nashville number, keep as-is
+                    chord_content.append({
+                        'position_x': position * 10,
+                        'chord': chord_text,  # Keep the Nashville notation
+                        'original': chord_text,
+                        'confidence': line.certainty
+                    })
+            
+            if chord_content:
+                lines.append({
+                    'index': len(lines),
+                    'type': 'chords',
+                    'content': chord_content
+                })
+        else:
+            # Lyric line
+            lines.append({
+                'index': len(lines),
+                'type': 'lyrics',
+                'content': [{
+                    'text': line.text,
+                    'confidence': line.certainty
+                }]
+            })
+    
+    return {
+        'section_name': prelim_section.title,
+        'key': key,
+        'lines': lines,
+        'chords': [l for l in lines if l['type'] == 'chords'],
+        'lyrics': [l for l in lines if l['type'] == 'lyrics']
+    }
+
+
+def rebuild_plain_text(structured_data):
+    """
+    Rebuild plain text from structured data with proper spacing.
+    """
+    plain_text = ""
+    
+    for line in structured_data['lines']:
+        if line['type'] == 'lyrics':
+            plain_text += " ".join([item['text'] for item in line['content']]) + "\n"
+        elif line['type'] == 'chords':
+            chord_items = line['content']
+            
+            if chord_items:
+                positions = [item['position_x'] for item in chord_items]
+                min_pos = min(positions)
+                avg_char_width = 10
+                
+                chord_line = ""
+                last_char_pos = 0
+                
+                for item in chord_items:
+                    pixel_pos = item['position_x']
+                    char_pos = int((pixel_pos - min_pos) / avg_char_width)
+                    spaces_needed = max(1, char_pos - last_char_pos)
+                    
+                    chord_line += " " * spaces_needed + item['chord']
+                    last_char_pos = char_pos + len(item['chord'])
+                
+                plain_text += chord_line + "\n"
+    
+    return plain_text.strip()

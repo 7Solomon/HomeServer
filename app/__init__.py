@@ -48,12 +48,14 @@ def create_app(config=None):
     from app.blueprints.auth import auth_bp
     from app.blueprints.storage import storage_bp
     from app.blueprints.admin import admin_bp
+    from app.blueprints.ocr import ocr_bp
     #from app.blueprints.predigt_upload import predigt_upload_api_bp
     
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(storage_bp)
     app.register_blueprint(admin_bp, url_prefix="/admin")
+    app.register_blueprint(ocr_bp, url_prefix="/ocr")
     #app.register_blueprint(predigt_upload_api_bp, url_prefix="/predigt_upload")
     
     # Create database tables

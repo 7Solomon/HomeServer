@@ -78,21 +78,27 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-
 def approved_user_required(f):
+    """
+    Decorator for web pages that requires an approved user (session-based).
+    Admins are automatically considered approved.
+    """
     @wraps(f)
-    @valid_token # Run token validation first, sets g.token_record and g.current_user
     def decorated_function(*args, **kwargs):
-        # valid_token already validated the token and fetched the user into g.current_user
-        if not g.current_user:
-            # This implies the token was valid but not associated with a user
-            return jsonify({'error': 'Token not associated with a user!'}), 401
-
-        # Check approval status - THIS IS THE KEY PART
-        if not g.current_user.is_approved:
-            return jsonify({'error': 'Account pending approval'}), 403
-
-        # g.current_user is already set by valid_token
+        # Check if user is logged in via session
+        if not current_user.is_authenticated:
+            flash('Please log in to access this page.', 'info')
+            return redirect(url_for('auth.login', next=request.url))
+        
+        # Admins automatically have access (they are implicitly approved)
+        if current_user.is_admin:
+            return f(*args, **kwargs)
+        
+        # Check approval status for non-admin users
+        if not current_user.is_approved:
+            flash('Your account is pending approval.', 'warning')
+            return redirect(url_for('main.index'))
+        
         return f(*args, **kwargs)
     return decorated_function
 

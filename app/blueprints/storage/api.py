@@ -159,7 +159,7 @@ def delete_song_data(filename):
 # --- API ENDPOINTS FOR STANDARD FILE/FOLDER OPERATIONS (Called by storage.js) ---
 
 @storage_bp.route('/api/upload', methods=['POST'])
-@approved_user_required 
+@valid_token 
 def api_upload_file():
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
@@ -208,7 +208,7 @@ def api_upload_file():
         return jsonify({'error': f'Failed to save file: {str(e)}'}), 500
 
 @storage_bp.route('/api/directory/create', methods=['POST'])
-@approved_user_required # Requires an approved user token, sets g.current_user
+@admin_token
 def api_create_directory():
     # Assuming form data based on storage.js modal
     name = request.form.get('name')
@@ -246,7 +246,7 @@ def api_create_directory():
         return jsonify({'error': f'Failed to create directory: {str(e)}'}), 500
 
 @storage_bp.route('/api/directories/list', methods=['GET'])
-@approved_user_required # Or @valid_token if any valid token can list dirs?
+@valid_token # Or @valid_token if any valid token can list dirs?
 def api_list_directories():
     exclude_id_str = request.args.get('exclude')
     exclude_id = int(exclude_id_str) if exclude_id_str and exclude_id_str.isdigit() else None

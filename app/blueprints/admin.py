@@ -19,7 +19,7 @@ def get_config_file_path():
 @admin_bp.route('/config', methods=['GET'])
 @login_required
 @admin_required
-def config_page():
+def config():
     config_content = ""
     config_file_path = get_config_file_path()
     try:

@@ -28,7 +28,7 @@ def config_page():
                 config_content = f.read()
     except Exception as e:
         flash(f"Error reading config file: {e}", "error")
-    return render_template('admin/config_page.html', config_content=config_content)
+    return render_template('admin/config.html', config_content=config_content)
 
 @admin_bp.route('/config/upload', methods=['POST'])
 @login_required

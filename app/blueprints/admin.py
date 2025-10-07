@@ -36,12 +36,12 @@ def config_page():
 def upload_config():
     if 'config_file' not in request.files:
         flash('No file part in the request.', 'error')
-        return redirect(url_for('admin.config_page'))
+        return redirect(url_for('admin.confige'))
 
     file = request.files['config_file']
     if file.filename == '':
         flash('No file selected for uploading.', 'error')
-        return redirect(url_for('admin.config_page'))
+        return redirect(url_for('admin.config'))
 
     if file and file.filename.endswith('.json'):
         config_file_path = get_config_file_path()
@@ -55,7 +55,7 @@ def upload_config():
     else:
         flash('Invalid file type. Please upload a .json file.', 'error')
 
-    return redirect(url_for('admin.config_page'))
+    return redirect(url_for('admin.config'))
 
 @admin_bp.route('/config/save', methods=['POST'])
 @login_required
@@ -64,7 +64,7 @@ def save_config():
     config_data = request.form.get('config_content')
     if config_data is None:
         flash('No content received to save.', 'error')
-        return redirect(url_for('admin.config_page'))
+        return redirect(url_for('admin.config'))
 
     config_file_path = get_config_file_path()
     try:

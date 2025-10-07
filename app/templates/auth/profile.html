@@ -168,28 +168,12 @@
                             </div>
                         </div>
                         <div class="token-status">
-                            {% set is_expired = false %}
-                            {% if token.expires_at %}
-                                {% try %}
-                                    {% set is_expired = token.expires_at < now %}
-                                {% except %}
-                                    {# Failsafe: if comparison fails, show an error indicator #}
-                                    {% set is_expired = 'error' %}
-                                {% endtry %}
-                            {% endif %}
-
-                            {% if is_expired == 'error' %}
-                                <span class="badge badge-warning">
-                                    <i class="fas fa-exclamation-triangle"></i> Zeitzone-Fehler
-                                </span>
-                            {% elif is_expired %}
-                                <span class="badge badge-danger">
-                                    <i class="fas fa-times-circle"></i> Abgelaufen
-                                </span>
+                            {% if token.expires_at and token.expires_at < now %}
+                                <span class="status-badge expired">Abgelaufen</span>
+                            {% elif token.is_active %}
+                                <span class="status-badge active">Aktiv</span>
                             {% else %}
-                                <span class="badge badge-success">
-                                    <i class="fas fa-check-circle"></i> Aktiv
-                                </span>
+                                <span class="status-badge inactive">Inaktiv</span>
                             {% endif %}
                         </div>
                     </div>

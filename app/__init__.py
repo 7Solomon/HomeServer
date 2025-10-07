@@ -1,4 +1,4 @@
-from datetime import datetime,timezone
+from datetime import datetime, timezone
 from app.utils.admin_cli_tool import create_admin, create_api_token, create_predigt_user
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -68,6 +68,24 @@ def create_app(config=None):
     @app.context_processor
     def inject_now():
         return {'now': datetime.now(timezone.utc)}
+    
+    # Add custom Jinja2 filter for safe datetime comparison
+    @app.template_filter('is_expired')
+    def is_expired_filter(expires_at):
+        """Safely check if a datetime has expired"""
+        if not expires_at:
+            return False
+        try:
+            # Make sure both datetimes are timezone-aware
+            now = datetime.now(timezone.utc)
+            if expires_at.tzinfo is None:
+                # Make expires_at timezone-aware if it isn't
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
+            elif now.tzinfo is None:
+                now = now.replace(tzinfo=timezone.utc)
+            return expires_at < now
+        except (TypeError, AttributeError):
+            return None  # Return None to indicate error
     
     return app
 

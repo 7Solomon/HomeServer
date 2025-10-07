@@ -1,0 +1,115 @@
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/overleaf.css') }}">
+<div class="overleaf-loading">
+    <div class="loading-container">
+        <div class="loading-icon">
+            <i class="fas fa-file-alt"></i>
+        </div>
+
+        <h2 class="loading-title">Overleaf wird gestartet</h2>
+        <p class="loading-subtitle">Docker Container werden initialisiert...</p>
+
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="status-box" id="statusBox">
+            <div class="status-text" id="statusText">
+            </div>
+            <div class="status-detail" id="statusDetail">
+            </div>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-item">
+                <i class="fas fa-clock"></i>
+                <span id="timeElapsed">0 Sekunden</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-network-wired"></i>
+                <span>Port {{ port|default(80) }}</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-server"></i>
+                <span id="checkCount">Prüfung 0/30</span>
+            </div>
+        </div>
+
+        <div class="manual-link" id="manualLink" style="display: none;">
+            <p>Dauert es zu lange? <a href="{{ url_for('storage.check_overleaf_ready') }}">Hier klicken um fortzufahren</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const VPS_IP = '{{ vps_ip }}';
+const PORT = '{{ port|default(80) }}';
+let checkCount = 0;
+let startTime = Date.now();
+const maxChecks = 30;
+
+const statusMessages = [
+    { text: '🚀 Docker Compose startet', detail: 'Container werden erstellt...', progress: 10 },
+    { text: '📦 MongoDB wird initialisiert', detail: 'Datenbank startet...', progress: 25 },
+    { text: '🔴 Redis wird gestartet', detail: 'Cache-System lädt...', progress: 40 },
+    { text: '📝 ShareLaTeX wird vorbereitet', detail: 'Hauptanwendung startet...', progress: 60 },
+    { text: '🌐 Webserver wird konfiguriert', detail: 'Fast fertig...', progress: 80 },
+    { text: '✅ Überprüfe Verfügbarkeit', detail: 'Teste Verbindung...', progress: 90 }
+];
+
+function updateStatus(message, detail, progress) {
+    document.getElementById('statusText').innerHTML = message + 
+        '<span class="spinner-dots"><span></span><span></span><span></span></span>';
+    document.getElementById('statusDetail').textContent = detail;
+    document.getElementById('progressBar').style.width = progress + '%';
+}
+
+function updateTimer() {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    document.getElementById('timeElapsed').textContent = elapsed + ' Sekunden';
+}
+
+function checkOverleaf() {
+    checkCount++;
+    const messageIndex = Math.min(Math.floor(checkCount / 5), statusMessages.length - 1);
+    const msg = statusMessages[messageIndex];
+    
+    updateStatus(msg.text, msg.detail, msg.progress);
+    document.getElementById('checkCount').textContent = `Prüfung ${checkCount}/${maxChecks}`;
+    
+    // Show manual link after 20 seconds
+    if (checkCount >= 10) {
+        document.getElementById('manualLink').style.display = 'block';
+    }
+    
+    // Check the correct port (80 instead of 3000)
+    fetch(`http://${VPS_IP}:${PORT}`, { 
+        mode: 'no-cors',
+        cache: 'no-cache'
+    })
+    .then(() => {
+        updateStatus('✅ Overleaf ist bereit!', 'Weiterleitung...', 100);
+        setTimeout(() => {
+            window.location.href = '{{ url_for("storage.check_overleaf_ready") }}';
+        }, 1000);
+    })
+    .catch(() => {
+        if (checkCount >= maxChecks) {
+            updateStatus('⚠️ Timeout erreicht', 'Bitte manuell fortfahren', 100);
+            document.getElementById('statusBox').style.background = 'rgba(239, 68, 68, 0.05)';
+            document.getElementById('statusBox').style.borderColor = 'rgba(239, 68, 68, 0.2)';
+        } else {
+            setTimeout(checkOverleaf, 2000);
+        }
+    });
+}
+
+// Update timer every second
+setInterval(updateTimer, 1000);
+
+// Start checking after 5 seconds
+setTimeout(checkOverleaf, 5000);
+</script>
+{% endblock %}

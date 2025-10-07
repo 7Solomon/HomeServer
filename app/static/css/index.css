@@ -1,0 +1,318 @@
+.welcome-section {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.welcome-subtitle {
+    color: var(--text-light);
+    font-size: 1.1rem;
+    margin-top: 0.5rem;
+}
+
+.stats-section {
+    margin-top: 2rem;
+}
+
+.usage-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.usage-percent {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.fa-hand-wave {
+    color: #f59e0b;
+}
+
+/* Card Color Variations - Subtle Gradients */
+.card:nth-child(1) .card-icon {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+}
+
+.card:nth-child(2) .card-icon {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.card:nth-child(3) .card-icon {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.card:nth-child(4) .card-icon {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.card:nth-child(5) .card-icon {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+.card:nth-child(6) .card-icon {
+    background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+}
+
+/* Optional: Add matching subtle border colors on hover */
+.card:nth-child(1):hover {
+    border-color: rgba(168, 237, 234, 0.4);
+    box-shadow: 0 8px 30px rgba(168, 237, 234, 0.2);
+}
+
+.card:nth-child(2):hover {
+    border-color: rgba(240, 147, 251, 0.3);
+    box-shadow: 0 8px 30px rgba(240, 147, 251, 0.15);
+}
+
+.card:nth-child(3):hover {
+    border-color: rgba(79, 172, 254, 0.3);
+    box-shadow: 0 8px 30px rgba(79, 172, 254, 0.15);
+}
+
+.card:nth-child(4):hover {
+    border-color: rgba(67, 233, 123, 0.3);
+    box-shadow: 0 8px 30px rgba(67, 233, 123, 0.15);
+}
+
+.card:nth-child(5):hover {
+    border-color: rgba(250, 112, 154, 0.3);
+    box-shadow: 0 8px 30px rgba(250, 112, 154, 0.15);
+}
+
+.card:nth-child(6):hover {
+    border-color: rgba(48, 207, 208, 0.3);
+    box-shadow: 0 8px 30px rgba(48, 207, 208, 0.15);
+}
+
+/* Optional: Subtle colored glow on card icon hover */
+.card:nth-child(1) .card-icon:hover {
+    box-shadow: 0 8px 25px rgba(168, 237, 234, 0.5);
+}
+
+.card:nth-child(2) .card-icon:hover {
+    box-shadow: 0 8px 25px rgba(240, 147, 251, 0.4);
+}
+
+.card:nth-child(3) .card-icon:hover {
+    box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+}
+
+.card:nth-child(4) .card-icon:hover {
+    box-shadow: 0 8px 25px rgba(67, 233, 123, 0.4);
+}
+
+.card:nth-child(5) .card-icon:hover {
+    box-shadow: 0 8px 25px rgba(250, 112, 154, 0.4);
+}
+
+.card:nth-child(6) .card-icon:hover {
+    box-shadow: 0 8px 25px rgba(48, 207, 208, 0.4);
+}
+
+/* Mobile-First Responsive Design */
+@media (max-width: 768px) {
+    .dashboard {
+        padding: 0.5rem 0;
+    }
+    
+    .welcome-section {
+        margin-bottom: 2rem;
+        padding: 1rem;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+        border-radius: var(--border-radius);
+    }
+    
+    .welcome-section h2 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .welcome-subtitle {
+        font-size: 1rem;
+    }
+    
+    .dashboard-cards {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .card-icon {
+        width: 100%;
+        height: 80px;
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+    }
+    
+    .card-icon::after {
+        display: none;
+    }
+    
+    .card-content {
+        padding: 1.5rem;
+    }
+    
+    .card-content h3 {
+        font-size: 1.1rem;
+    }
+    
+    .card-content p {
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+        padding: 0.75rem 1rem;
+    }
+    
+    .quick-stats {
+        padding: 1.5rem;
+    }
+    
+    .quick-stats h3 {
+        font-size: 1.25rem;
+        text-align: center;
+    }
+    
+    .usage-info {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .usage-percent {
+        font-size: 1.5rem;
+        background: var(--gradient-primary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+}
+
+/* Smartphone Portrait (very small screens) */
+@media (max-width: 480px) {
+    .welcome-section h2 {
+        font-size: 1.25rem;
+    }
+    
+    .welcome-subtitle {
+        font-size: 0.9rem;
+    }
+    
+    .card-content {
+        padding: 1rem;
+    }
+    
+    .card-content h3 {
+        font-size: 1rem;
+    }
+    
+    .card-content p {
+        font-size: 0.85rem;
+    }
+    
+    .btn {
+        padding: 0.625rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .quick-stats {
+        padding: 1rem;
+    }
+    
+    .quick-stats h3 {
+        font-size: 1.1rem;
+    }
+    
+    .usage-info p {
+        font-size: 0.9rem;
+    }
+    
+    .usage-percent {
+        font-size: 1.25rem;
+    }
+}
+
+/* Tablet Portrait */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .dashboard-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+    
+    .card {
+        flex-direction: row;
+    }
+    
+    .card-icon {
+        width: 90px;
+    }
+}
+
+/* Large Mobile Landscape */
+@media (max-width: 768px) and (orientation: landscape) {
+    .dashboard {
+        padding: 1rem 0;
+    }
+    
+    .welcome-section {
+        margin-bottom: 1.5rem;
+        padding: 0.75rem;
+    }
+    
+    .welcome-section h2 {
+        font-size: 1.25rem;
+    }
+    
+    .welcome-subtitle {
+        font-size: 0.9rem;
+    }
+    
+    .dashboard-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    
+    .card {
+        flex-direction: row;
+    }
+    
+    .card-icon {
+        width: 70px;
+        height: auto;
+    }
+    
+    .card-content {
+        padding: 1rem;
+    }
+    
+    .card-content h3 {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .card-content p {
+        font-size: 0.85rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+    
+    .quick-stats {
+        padding: 1rem;
+    }
+    
+    .stats-section {
+        margin-top: 1.5rem;
+    }
+}

@@ -131,10 +131,14 @@ def get_last_livestream_data(limit=7):
         return []
 
 def _update_yt_dlp():
-    """Update yt-dlp to the latest version"""
+    """Update yt-dlp to the latest version in the current Python environment"""
     try:
         logging.info("Attempting to update yt-dlp...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", "yt-dlp"])
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "-U", "yt-dlp"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
         logging.info("yt-dlp updated successfully")
         return True
     except subprocess.CalledProcessError as e:

@@ -2,7 +2,7 @@
 instance/
 uploads/
 config.json
-
+app/blueprints/storage/processed_files/
 
 __pycache__/
 *.py[cod]

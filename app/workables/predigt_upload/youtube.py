@@ -1,5 +1,7 @@
 from __future__ import annotations
 import logging
+import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 import tempfile
@@ -128,7 +130,21 @@ def get_last_livestream_data(limit=7):
         logging.exception("get_last_livestream_data failed")
         return []
 
-def download_youtube_audio_from_url(URL: str) -> str:
+def _update_yt_dlp():
+    """Update yt-dlp to the latest version"""
+    try:
+        logging.info("Attempting to update yt-dlp...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", "yt-dlp"])
+        logging.info("yt-dlp updated successfully")
+        return True
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Failed to update yt-dlp: {e}")
+        return False
+    except Exception as e:
+        logging.exception(f"Unexpected error updating yt-dlp: {e}")
+        return False
+
+def download_youtube_audio_from_url(URL: str, retry_with_update: bool = True) -> str:
     temp_file = tempfile.NamedTemporaryFile(delete=False)
     base = temp_file.name
     temp_file.close()
@@ -154,18 +170,39 @@ def download_youtube_audio_from_url(URL: str) -> str:
         "ffmpeg_location": ffdir or None,
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.extract_info(URL, download=True)
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.extract_info(URL, download=True)
 
-    mp3 = Path(f"{base}.mp3")
-    if mp3.exists():
-        return str(mp3)
-    # Fallback: best-effort find something
-    for ext in (".m4a", ".webm", ".opus"):
-        p = Path(f"{base}{ext}")
-        if p.exists():
-            return str(p)
-    raise FileNotFoundError("Downloaded audio file not found")
+        mp3 = Path(f"{base}.mp3")
+        if mp3.exists():
+            return str(mp3)
+        # Fallback: best-effort find something
+        for ext in (".m4a", ".webm", ".opus"):
+            p = Path(f"{base}{ext}")
+            if p.exists():
+                return str(p)
+        raise FileNotFoundError("Downloaded audio file not found")
+    
+    except yt_dlp.utils.DownloadError as e:
+        error_msg = str(e)
+        # Check if it's a format error
+        if "Requested format is not available" in error_msg or "not available" in error_msg.lower():
+            if retry_with_update:
+                logging.warning(f"Format error encountered: {error_msg}. Attempting to update yt-dlp...")
+                if _update_yt_dlp():
+                    logging.info("Retrying download after yt-dlp update...")
+                    # Retry once without update flag to prevent infinite loop
+                    return download_youtube_audio_from_url(URL, retry_with_update=False)
+                else:
+                    logging.error("yt-dlp update failed, cannot retry download")
+            raise
+        else:
+            # Other download errors, just raise
+            raise
+    except Exception as e:
+        logging.exception(f"Unexpected error downloading from {URL}")
+        raise
 
 def get_video_info(video_id_or_url):
     ydl_opts = {

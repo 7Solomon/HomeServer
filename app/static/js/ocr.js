@@ -1,16 +1,12 @@
 // State Management
-let currentImage = null;
-let currentPdfDoc = null;
-let currentPdfPage = 1;
-let totalPdfPages = 0;
-let allSections = {}; // Store sections per page: { pageNum: [sections] }
-let sections = []; // Current page sections
+let uploadedImages = []; // Array to store all images/pages
 let isDrawing = false;
 let startPos = null;
 let canvas = null;
 let ctx = null;
 let showSections = true;
 let selectedSection = null;
+let sections = []; // All sections across all images
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -110,172 +106,177 @@ document.addEventListener('DOMContentLoaded', function() {
     const finalizeUploadBtn = document.getElementById('finalizeUploadBtn');
     if (finalizeUploadBtn) finalizeUploadBtn.addEventListener('click', finalizeAndUpload);
 
-    const prevBtn = document.getElementById('prevPageBtn');
-    const nextBtn = document.getElementById('nextPageBtn');
-    if (prevBtn) prevBtn.addEventListener('click', () => changePdfPage(-1));
-    if (nextBtn) nextBtn.addEventListener('click', () => changePdfPage(1));
+    // Make canvas scrollable area listen to scroll
+    const canvasContainer = document.querySelector('.canvas-scroll-container');
+    if (canvasContainer) {
+        canvasContainer.addEventListener('scroll', () => {
+            // Redraw might be needed if you add features that depend on scroll position
+        });
+    }
 });
 
 async function handleImageUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    const fileType = file.type;
-    
-    if (fileType === 'application/pdf') {
-        await loadPdf(file);
-    } else {
-        loadImage(file);
+    showToast('Lade Dateien...', 'info');
+
+    for (let file of files) {
+        const fileType = file.type;
+        
+        if (fileType === 'application/pdf') {
+            await loadPdf(file);
+        } else {
+            await loadImage(file);
+        }
     }
+
+    redrawAllImages();
+    
+    document.getElementById('uploadArea').style.display = 'none';
+    document.getElementById('canvasArea').style.display = 'block';
+    
+    showToast(`${uploadedImages.length} Bild(er) geladen`, 'success');
 }
 
 function loadImage(file) {
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const img = new Image();
-        img.onload = function() {
-            currentImage = img;
-            currentPdfDoc = null;
-            const pdfNav = document.getElementById('pdfNavigation');
-            if (pdfNav) {
-                pdfNav.style.display = 'none';
-            }
-            
-            canvas.width = img.width;
-            canvas.height = img.height;
-            redrawCanvas();
-            
-            document.getElementById('uploadArea').style.display = 'none';
-            document.getElementById('canvasArea').style.display = 'block';
-            
-            showToast('Bild erfolgreich geladen', 'success');
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                uploadedImages.push({
+                    type: 'image',
+                    image: img,
+                    width: img.width,
+                    height: img.height,
+                    yOffset: 0 // Will be calculated
+                });
+                resolve();
+            };
+            img.src = event.target.result;
         };
-        img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
+        reader.readAsDataURL(file);
+    });
 }
 
 async function loadPdf(file) {
     try {
-        showToast('PDF wird geladen...', 'info');
-        
         const arrayBuffer = await file.arrayBuffer();
         const loadingTask = pdfjsLib.getDocument({data: arrayBuffer});
         const pdf = await loadingTask.promise;
         
-        currentPdfDoc = pdf;
-        totalPdfPages = pdf.numPages;
-        currentPdfPage = 1;
+        const totalPages = pdf.numPages;
         
-        const pdfNav = document.getElementById('pdfNavigation');
-        if (pdfNav) {
-            pdfNav.style.display = 'inline-block';
+        // Load all pages
+        for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+            await renderPdfPageToImage(pdf, pageNum);
         }
-        updatePdfPageInfo();
         
-        await renderPdfPage(currentPdfPage);
-        
-        document.getElementById('uploadArea').style.display = 'none';
-        document.getElementById('canvasArea').style.display = 'block';
-        
-        showToast(`PDF geladen: ${totalPdfPages} Seite(n)`, 'success');
     } catch (error) {
         console.error('Error loading PDF:', error);
         showToast('PDF konnte nicht geladen werden: ' + error.message, 'danger');
     }
 }
 
-async function renderPdfPage(pageNum) {
-    if (!currentPdfDoc) return;
-    
+async function renderPdfPageToImage(pdf, pageNum) {
     try {
-        const page = await currentPdfDoc.getPage(pageNum);
+        const page = await pdf.getPage(pageNum);
         const scale = 2.0;
         const viewport = page.getViewport({scale: scale});
         
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
+        // Create temporary canvas for this page
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = viewport.width;
+        tempCanvas.height = viewport.height;
+        const tempCtx = tempCanvas.getContext('2d');
         
         const renderContext = {
-            canvasContext: ctx,
+            canvasContext: tempCtx,
             viewport: viewport
         };
         
         await page.render(renderContext).promise;
-        currentImage = await createImageFromCanvas();
-        redrawCanvas();
+        
+        // Convert to image
+        const img = new Image();
+        await new Promise((resolve) => {
+            img.onload = resolve;
+            img.src = tempCanvas.toDataURL();
+        });
+        
+        uploadedImages.push({
+            type: 'pdf',
+            image: img,
+            width: viewport.width,
+            height: viewport.height,
+            pageNumber: pageNum,
+            yOffset: 0 // Will be calculated
+        });
         
     } catch (error) {
         console.error('Error rendering PDF page:', error);
-        showToast('Failed to render PDF page', 'danger');
     }
 }
 
-function createImageFromCanvas() {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.src = canvas.toDataURL();
+function redrawAllImages() {
+    if (uploadedImages.length === 0) return;
+
+    // Calculate total height and y offsets
+    let totalHeight = 0;
+    const spacing = 40; // Space between images
+    const maxWidth = Math.max(...uploadedImages.map(img => img.width));
+    
+    uploadedImages.forEach((imgData, index) => {
+        imgData.yOffset = totalHeight;
+        totalHeight += imgData.height;
+        if (index < uploadedImages.length - 1) {
+            totalHeight += spacing;
+        }
     });
-}
 
-function changePdfPage(delta) {
-    if (!currentPdfDoc) return;
-    
-    const newPage = currentPdfPage + delta;
-    if (newPage < 1 || newPage > totalPdfPages) return;
-    
-    // Save current page sections
-    saveCurrentPageSections();
-    
-    // Change page
-    currentPdfPage = newPage;
-    updatePdfPageInfo();
-    renderPdfPage(currentPdfPage);
-    
-    // Load sections for new page
-    loadPageSections(currentPdfPage);
-}
+    // Set canvas size
+    canvas.width = maxWidth;
+    canvas.height = totalHeight;
 
-function saveCurrentPageSections() {
-    if (currentPdfDoc) {
-        allSections[currentPdfPage] = [...sections]; // Deep copy
-    }
-}
-
-function loadPageSections(pageNum) {
-    sections = allSections[pageNum] || [];
-    selectedSection = null;
-    updateSectionsList();
-    redrawCanvas();
-    const details = document.getElementById('sectionDetails');
-    if (details) {
-        details.style.display = 'none';
-    }
-}
-
-function updatePdfPageInfo() {
-    const pageIndicator = document.getElementById('pageInfo');
-    pageIndicator.textContent = `Page ${currentPdfPage} / ${totalPdfPages}`;
-    
-    // Show section count for this page
-    const currentPageSections = allSections[currentPdfPage] || [];
-    const totalSectionsAcrossPages = Object.values(allSections).reduce((sum, pageSections) => sum + pageSections.length, 0);
-    
-    if (totalSectionsAcrossPages > currentPageSections.length) {
-        pageIndicator.textContent += ` (${currentPageSections.length} sections on this page, ${totalSectionsAcrossPages} total)`;
-    }
-    
-    document.getElementById('prevPageBtn').disabled = currentPdfPage <= 1;
-    document.getElementById('nextPageBtn').disabled = currentPdfPage >= totalPdfPages;
-}
-
-function redrawCanvas() {
-    if (!currentImage) return;
-
+    // Draw all images
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(currentImage, 0, 0);
+    
+    uploadedImages.forEach((imgData, index) => {
+        ctx.drawImage(imgData.image, 0, imgData.yOffset);
+        
+        // Draw page separator and label
+        if (imgData.type === 'pdf') {
+            // Label
+            ctx.fillStyle = 'rgba(102, 126, 234, 0.9)';
+            ctx.fillRect(10, imgData.yOffset + 10, 100, 30);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText(`Seite ${imgData.pageNumber}`, 20, imgData.yOffset + 30);
+        } else {
+            // Image label
+            ctx.fillStyle = 'rgba(102, 126, 234, 0.9)';
+            ctx.fillRect(10, imgData.yOffset + 10, 100, 30);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText(`Bild ${index + 1}`, 20, imgData.yOffset + 30);
+        }
+        
+        // Draw separator line
+        if (index < uploadedImages.length - 1) {
+            const lineY = imgData.yOffset + imgData.height + spacing / 2;
+            ctx.strokeStyle = '#cbd5e0';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 5]);
+            ctx.beginPath();
+            ctx.moveTo(0, lineY);
+            ctx.lineTo(canvas.width, lineY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+    });
 
+    // Draw sections
     if (showSections) {
         sections.forEach(section => {
             ctx.fillStyle = section.color;
@@ -305,6 +306,17 @@ function getCanvasCoordinates(e) {
     };
 }
 
+// Find which image the y-coordinate belongs to
+function getImageAtY(y) {
+    for (let i = 0; i < uploadedImages.length; i++) {
+        const imgData = uploadedImages[i];
+        if (y >= imgData.yOffset && y < imgData.yOffset + imgData.height) {
+            return { index: i, imgData: imgData, relativeY: y - imgData.yOffset };
+        }
+    }
+    return null;
+}
+
 function handleMouseDown(e) {
     startPos = getCanvasCoordinates(e);
     isDrawing = true;
@@ -314,7 +326,7 @@ function handleMouseMove(e) {
     if (!isDrawing) return;
 
     const currentPos = getCanvasCoordinates(e);
-    redrawCanvas();
+    redrawAllImages();
 
     ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
     ctx.lineWidth = 2;
@@ -339,30 +351,34 @@ async function handleMouseUp(e) {
     if (width > 10 && height > 10) {
         const songKey = document.getElementById('songKey').value.trim();
         if (!songKey) {
-            showToast('Please enter the song key first!', 'warning');
+            showToast('Bitte geben Sie zuerst die Tonart ein!', 'warning');
             startPos = null;
             return;
         }
 
-        const sectionName = prompt('Enter section name (e.g., Verse 1, Chorus):');
+        const sectionName = prompt('Abschnittsnamen eingeben (z.B. Strophe 1, Refrain):');
         if (sectionName) {
+            const y = Math.min(startPos.y, endPos.y);
+            const imageInfo = getImageAtY(y);
+            
             const section = {
                 id: Date.now(),
                 name: sectionName,
                 x: Math.min(startPos.x, endPos.x),
-                y: Math.min(startPos.y, endPos.y),
+                y: y,
                 width: width,
                 height: height,
                 color: colors[sections.length % colors.length],
                 ocrResult: null,
                 processing: true,
-                pageNumber: currentPdfDoc ? currentPdfPage : null
+                imageIndex: imageInfo ? imageInfo.index : 0,
+                imageType: imageInfo ? imageInfo.imgData.type : 'image',
+                pageNumber: imageInfo?.imgData.pageNumber || null
             };
             
             sections.push(section);
-            saveCurrentPageSections(); // Save after adding
             updateSectionsList();
-            redrawCanvas();
+            redrawAllImages();
             
             // Auto-process the section
             await processSection(section.id);
@@ -376,28 +392,18 @@ function updateSectionsList() {
     const list = document.getElementById('sectionsList');
     const count = document.getElementById('sectionCount');
     
-    // Count all sections across all pages
-    const totalSections = Object.values(allSections).reduce((sum, pageSections) => sum + pageSections.length, 0);
-    count.textContent = totalSections;
+    count.textContent = sections.length;
 
     if (sections.length === 0) {
-        const pageInfo = currentPdfDoc ? ` auf Seite ${currentPdfPage}` : '';
-        list.innerHTML = `<div style="text-align: center; padding: 2rem; color: #718096;">Noch keine Abschnitte${pageInfo}. Zeichnen Sie auf das Bild, um Abschnitte zu erstellen.</div>`;
-        
-        // Check if there are sections on other pages
-        const allProcessed = Object.values(allSections).every(pageSections => 
-            pageSections.every(s => s.ocrResult && !s.processing)
-        );
-        document.getElementById('finalizeBtn').disabled = !allProcessed || totalSections === 0;
-        document.getElementById('finalizeUploadBtn').disabled = !allProcessed || totalSections === 0;
+        list.innerHTML = `<div style="text-align: center; padding: 2rem; color: #718096;">Noch keine Abschnitte. Zeichnen Sie auf das Bild, um Abschnitte zu erstellen.</div>`;
+        document.getElementById('finalizeBtn').disabled = true;
+        document.getElementById('finalizeUploadBtn').disabled = true;
         return;
     }
 
-    const allProcessed = Object.values(allSections).every(pageSections => 
-        pageSections.every(s => s.ocrResult && !s.processing)
-    );
-    document.getElementById('finalizeBtn').disabled = !allProcessed || totalSections === 0;
-    document.getElementById('finalizeUploadBtn').disabled = !allProcessed || totalSections === 0;
+    const allProcessed = sections.every(s => s.ocrResult && !s.processing);
+    document.getElementById('finalizeBtn').disabled = !allProcessed || sections.length === 0;
+    document.getElementById('finalizeUploadBtn').disabled = !allProcessed || sections.length === 0;
     
     list.innerHTML = sections.map(section => {
         let statusBadge = '';
@@ -421,6 +427,14 @@ function updateSectionsList() {
         
         statusBadge = `<span style="background: ${statusColor}; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;"><i class="bi ${statusIcon}"></i> ${statusText}</span>`;
 
+        // Show which image/page this section belongs to
+        let locationBadge = '';
+        if (section.imageType === 'pdf' && section.pageNumber) {
+            locationBadge = `<span style="background: #6b7280; color: white; padding: 0.25rem 0.5rem; border-radius: 8px; font-size: 0.75rem;">Seite ${section.pageNumber}</span>`;
+        } else {
+            locationBadge = `<span style="background: #6b7280; color: white; padding: 0.25rem 0.5rem; border-radius: 8px; font-size: 0.75rem;">Bild ${section.imageIndex + 1}</span>`;
+        }
+
         return `
             <div class="section-item ${selectedSection?.id === section.id ? 'active' : ''}" 
                  onclick="selectSection(${section.id})"
@@ -429,7 +443,7 @@ function updateSectionsList() {
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
                         <span class="section-color-indicator" style="background-color: ${section.color}"></span>
                         <strong>${section.name}</strong>
-                        ${section.pageNumber ? `<span style="background: #6b7280; color: white; padding: 0.25rem 0.5rem; border-radius: 8px; font-size: 0.75rem;">S.${section.pageNumber}</span>` : ''}
+                        ${locationBadge}
                     </div>
                     <div style="display: flex; gap: 0.5rem;">
                         <button class="ocr-btn ocr-btn-sm" onclick="event.stopPropagation(); reprocessSection(${section.id})" 
@@ -652,7 +666,7 @@ async function processSection(sectionId) {
 
     const songKey = document.getElementById('songKey').value.trim();
     if (!songKey) {
-        showToast('Please enter the song key first!', 'warning');
+        showToast('Bitte geben Sie zuerst die Tonart ein!', 'warning');
         section.processing = false;
         updateSectionsList();
         return;
@@ -708,70 +722,117 @@ async function processSection(sectionId) {
                 section.ocrResult = processData;
                 section.processing = false;
                 updateSectionsList();
-                showToast(`✓ "${section.name}" processed`, 'success');
+                showToast(`✓ "${section.name}" verarbeitet`, 'success');
                 
                 if (selectedSection?.id === section.id) {
                     showSectionDetails(section);
                 }
             } else {
-                throw new Error(processData.error || 'Processing failed');
+                throw new Error(processData.error || 'Verarbeitung fehlgeschlagen');
             }
         } else {
-            throw new Error(uploadData.error || 'Upload failed');
+            throw new Error(uploadData.error || 'Upload fehlgeschlagen');
         }
     } catch (error) {
         console.error('Error:', error);
-        showToast(`Failed: "${section.name}" - ${error.message}`, 'danger');
+        showToast(`Fehler: "${section.name}" - ${error.message}`, 'danger');
         section.processing = false;
         section.ocrResult = null;
         updateSectionsList();
     }
 }
 
-async function reprocessSection(sectionId) {
-    const section = sections.find(s => s.id === sectionId);
-    if (section) {
-        section.ocrResult = null;
-        await processSection(sectionId);
-    }
-}
-
-function deleteSection(sectionId) {
-    if (confirm('Diesen Abschnitt löschen?')) {
-        sections = sections.filter(s => s.id !== sectionId);
-        saveCurrentPageSections();
-        
-        if (selectedSection?.id === sectionId) {
-            selectedSection = null;
-            const details = document.getElementById('sectionDetails');
-            if (details) {
-                details.style.display = 'none';
-            }
-        }
-        updateSectionsList();
-        redrawCanvas();
-        showToast('Abschnitt gelöscht', 'info');
-    }
-}
-
 function toggleSections() {
     showSections = !showSections;
-    redrawCanvas();
+    redrawAllImages();
 }
 
 function clearAll() {
-    if (confirm('Alle Abschnitte von ALLEN Seiten löschen und neu beginnen?')) {
+    if (confirm('Alle Bilder und Abschnitte löschen?')) {
         sections = [];
-        allSections = {};
+        uploadedImages = [];
         selectedSection = null;
+        canvas.width = 0;
+        canvas.height = 0;
         updateSectionsList();
-        redrawCanvas();
         const details = document.getElementById('sectionDetails');
         if (details) {
             details.style.display = 'none';
         }
-        showToast('Alle Abschnitte gelöscht', 'info');
+        document.getElementById('uploadArea').style.display = 'block';
+        document.getElementById('canvasArea').style.display = 'none';
+        showToast('Alles gelöscht', 'info');
     }
+}
+
+// Helper function to group sections by name and merge them
+function groupAndMergeSections() {
+    // Group sections by name (case-insensitive)
+    const groupedSections = {};
+    
+    sections.forEach(section => {
+        if (!section.ocrResult) return; // Skip unprocessed sections
+        
+        const normalizedName = section.name.trim().toLowerCase();
+        if (!groupedSections[normalizedName]) {
+            groupedSections[normalizedName] = [];
+        }
+        groupedSections[normalizedName].push(section);
+    });
+    
+    // Merge sections with the same name
+    const mergedSections = [];
+    
+    Object.keys(groupedSections).forEach(groupName => {
+        const sectionsInGroup = groupedSections[groupName];
+        
+        if (sectionsInGroup.length === 1) {
+            // Single section, no merging needed
+            mergedSections.push({
+                section_name: sectionsInGroup[0].name,
+                structured_data: sectionsInGroup[0].ocrResult.structured_data,
+                page_numbers: sectionsInGroup[0].pageNumber ? [sectionsInGroup[0].pageNumber] : null,
+                image_indices: [sectionsInGroup[0].imageIndex]
+            });
+        } else {
+            // Multiple sections with same name - merge them
+            // Sort by page/image order
+            sectionsInGroup.sort((a, b) => {
+                if (a.imageIndex !== b.imageIndex) {
+                    return a.imageIndex - b.imageIndex;
+                }
+                return a.y - b.y; // If same image, sort by y position
+            });
+            
+            // Merge structured data
+            const mergedLines = [];
+            const pageNumbers = [];
+            const imageIndices = [];
+            
+            sectionsInGroup.forEach(section => {
+                if (section.ocrResult.structured_data && section.ocrResult.structured_data.lines) {
+                    mergedLines.push(...section.ocrResult.structured_data.lines);
+                }
+                if (section.pageNumber) {
+                    pageNumbers.push(section.pageNumber);
+                }
+                imageIndices.push(section.imageIndex);
+            });
+            
+            mergedSections.push({
+                section_name: sectionsInGroup[0].name, // Use original name (with case)
+                structured_data: {
+                    lines: mergedLines
+                },
+                page_numbers: pageNumbers.length > 0 ? pageNumbers : null,
+                image_indices: imageIndices,
+                merged: true,
+                merge_count: sectionsInGroup.length
+            });
+        }
+    });
+    
+    return mergedSections;
 }
 
 async function finalizeSong() {
@@ -783,26 +844,24 @@ async function finalizeSong() {
         return;
     }
     
-    // Save current page before finalizing
-    saveCurrentPageSections();
-    
-    // Collect all sections from all pages
-    const allSectionsFlat = [];
-    Object.keys(allSections).sort((a, b) => parseInt(a) - parseInt(b)).forEach(pageNum => {
-        allSectionsFlat.push(...allSections[pageNum]);
-    });
-    
-    const unprocessed = allSectionsFlat.filter(s => !s.ocrResult || s.processing);
+    const unprocessed = sections.filter(s => !s.ocrResult || s.processing);
     if (unprocessed.length > 0) {
         showToast(`${unprocessed.length} Abschnitt(e) nicht bereit. Bitte warten oder erneut verarbeiten.`, 'warning');
         return;
     }
     
-    const sectionsData = allSectionsFlat.map(s => ({
-        section_name: s.name,
-        structured_data: s.ocrResult.structured_data,
-        page_number: s.pageNumber
-    }));
+    // Group and merge sections with same name
+    const mergedSections = groupAndMergeSections();
+    
+    // Show info about merged sections
+    const mergedCount = mergedSections.filter(s => s.merged).length;
+    if (mergedCount > 0) {
+        const mergedNames = mergedSections
+            .filter(s => s.merged)
+            .map(s => `"${s.section_name}" (${s.merge_count}x)`)
+            .join(', ');
+        showToast(`Zusammengeführt: ${mergedNames}`, 'info');
+    }
     
     try {
         showToast('Song wird finalisiert...', 'info');
@@ -814,7 +873,7 @@ async function finalizeSong() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                sections: sectionsData,
+                sections: mergedSections,
                 title: songName,
                 key: songKey,
                 authors: []
@@ -852,26 +911,24 @@ async function finalizeAndUpload() {
         return;
     }
     
-    // Save current page before finalizing
-    saveCurrentPageSections();
-    
-    // Collect all sections from all pages
-    const allSectionsFlat = [];
-    Object.keys(allSections).sort((a, b) => parseInt(a) - parseInt(b)).forEach(pageNum => {
-        allSectionsFlat.push(...allSections[pageNum]);
-    });
-    
-    const unprocessed = allSectionsFlat.filter(s => !s.ocrResult || s.processing);
+    const unprocessed = sections.filter(s => !s.ocrResult || s.processing);
     if (unprocessed.length > 0) {
         showToast(`${unprocessed.length} Abschnitt(e) nicht bereit. Bitte warten oder erneut verarbeiten.`, 'warning');
         return;
     }
     
-    const sectionsData = allSectionsFlat.map(s => ({
-        section_name: s.name,
-        structured_data: s.ocrResult.structured_data,
-        page_number: s.pageNumber
-    }));
+    // Group and merge sections with same name
+    const mergedSections = groupAndMergeSections();
+    
+    // Show info about merged sections
+    const mergedCount = mergedSections.filter(s => s.merged).length;
+    if (mergedCount > 0) {
+        const mergedNames = mergedSections
+            .filter(s => s.merged)
+            .map(s => `"${s.section_name}" (${s.merge_count}x)`)
+            .join(', ');
+        showToast(`Zusammengeführt: ${mergedNames}`, 'info');
+    }
     
     try {
         showToast('Song wird hochgeladen...', 'info');
@@ -883,7 +940,7 @@ async function finalizeAndUpload() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                sections: sectionsData,
+                sections: mergedSections,
                 title: songName,
                 key: songKey,
                 authors: []

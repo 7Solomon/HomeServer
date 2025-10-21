@@ -82,39 +82,31 @@
     padding: 1.5rem;
 }
 
-/* Upload Area */
-.upload-area {
-    min-height: 400px;
-    border: 3px dashed #cbd5e0;
-    border-radius: 12px;
+/* Canvas Card Body - special handling for scrollable content */
+#canvasArea .ocr-card-body {
+    padding: 0;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background: #fafafa;
+    flex-direction: column;
 }
 
-.upload-area:hover {
-    border-color: #667eea;
-    background-color: #f0f4ff;
-}
-
-/* Canvas */
-.canvas-container {
-    overflow: auto;
-    max-height: 600px;
-    border-radius: 8px;
+/* Canvas Scroll Container */
+.canvas-scroll-container {
+    max-height: 70vh;
+    overflow-y: auto;
+    overflow-x: auto;
+    border-radius: 0;
     background: #f8f9fa;
-    padding: 10px;
+    padding: 1rem;
+    position: relative;
 }
 
 #imageCanvas {
     cursor: crosshair;
     border: 2px solid #e2e8f0;
     border-radius: 8px;
-    max-width: 100%;
     display: block;
+    max-width: 100%;
+    height: auto;
 }
 
 /* Alert */
@@ -124,7 +116,7 @@
     border-left: 4px solid #667eea;
     padding: 1rem;
     border-radius: 8px;
-    margin-top: 1rem;
+    margin: 1rem 1.5rem;
 }
 
 /* Form Elements */
@@ -321,6 +313,10 @@
         max-width: 600px;
         margin: 0 auto;
     }
+    
+    .canvas-scroll-container {
+        max-height: 60vh;
+    }
 }
 
 @media (max-width: 768px) {
@@ -334,5 +330,18 @@
     
     .ocr-button-group {
         grid-template-columns: 1fr;
+    }
+    
+    .canvas-scroll-container {
+        max-height: 50vh;
+    }
+    
+    #canvasArea .ocr-card-body {
+        padding: 0;
+    }
+    
+    .ocr-alert-info {
+        margin: 0.5rem;
+        font-size: 0.875rem;
     }
 }

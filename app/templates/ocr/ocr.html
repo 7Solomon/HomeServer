@@ -29,29 +29,19 @@
                     <div class="upload-area" onclick="document.getElementById('imageInput').click()">
                         <div class="text-center">
                             <i class="bi bi-cloud-upload" style="font-size: 4rem; color: #cbd5e0;"></i>
-                            <h4 style="margin-top: 1rem;">Klicken Sie, um Bild oder PDF hochzuladen</h4>
-                            <p style="color: #718096; margin-top: 0.5rem;">Unterstützt: PNG, JPG, PDF (max 10MB)</p>
+                            <h4 style="margin-top: 1rem;">Klicken Sie, um Bilder oder PDF hochzuladen</h4>
+                            <p style="color: #718096; margin-top: 0.5rem;">Mehrere Dateien möglich: PNG, JPG, PDF (max 10MB pro Datei)</p>
                         </div>
                     </div>
-                    <input type="file" id="imageInput" accept=".png,.jpg,.jpeg,.pdf" class="d-none" style="display: none;">
+                    <input type="file" id="imageInput" accept=".png,.jpg,.jpeg,.pdf" class="d-none" style="display: none;" multiple>
                 </div>
             </div>
 
             <!-- Canvas Bereich -->
             <div id="canvasArea" class="ocr-card d-none" style="display: none;">
                 <div class="ocr-card-header">
-                    <h5><i class="bi bi-image"></i> Notenblatt</h5>
+                    <h5><i class="bi bi-image"></i> Notenblätter</h5>
                     <div class="ocr-header-controls">
-                        <!-- PDF Seiten Navigation -->
-                        <div id="pdfNavigation" class="d-none" style="display: none;">
-                            <button id="prevPageBtn" class="ocr-btn ocr-btn-sm" disabled>
-                                <i class="bi bi-chevron-left"></i>
-                            </button>
-                            <span id="pageInfo" style="color: white; margin: 0 0.5rem;">Seite 1 / 1</span>
-                            <button id="nextPageBtn" class="ocr-btn ocr-btn-sm" disabled>
-                                <i class="bi bi-chevron-right"></i>
-                            </button>
-                        </div>
                         <button id="toggleSectionsBtn" class="ocr-btn ocr-btn-sm">
                             <i class="bi bi-eye"></i> Abschnitte
                         </button>
@@ -61,17 +51,19 @@
                     </div>
                 </div>
                 <div class="ocr-card-body">
-                    <div class="canvas-container">
+                    <div class="canvas-scroll-container">
                         <canvas id="imageCanvas"></canvas>
                     </div>
                     <div class="ocr-alert-info">
                         <i class="bi bi-info-circle"></i> 
                         <strong>Anleitung:</strong>
                         <ol style="margin: 0.5rem 0 0 0; padding-left: 1.5rem;">
-                            <li>Geben Sie unten den Songnamen und die Tonart ein</li>
-                            <li>Zeichnen Sie Rechtecke um Abschnitte (Strophe, Refrain, usw.)</li>
+                            <li>Laden Sie mehrere Bilder oder ein PDF hoch</li>
+                            <li>Scrollen Sie durch alle Seiten</li>
+                            <li>Geben Sie den Songnamen und die Tonart ein</li>
+                            <li>Zeichnen Sie Rechtecke um Abschnitte</li>
                             <li>Benennen Sie jeden Abschnitt - OCR wird automatisch verarbeitet</li>
-                            <li>Überprüfen Sie die Ergebnisse und klicken Sie auf "Fertigstellen"</li>
+                            <li>Klicken Sie auf "Fertigstellen"</li>
                         </ol>
                     </div>
                 </div>

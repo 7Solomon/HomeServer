@@ -161,7 +161,11 @@ def api_generate_admin_token():
 @auth_bp.route('/profile')
 @login_required
 def profile():
-    """User profile page"""
+    """User profile page - redirect to register if not logged in"""
+    if not current_user.is_authenticated:
+        flash('Bitte registrieren Sie sich oder melden Sie sich an', 'info')
+        return redirect(url_for('auth.register'))
+    
     from datetime import datetime, timezone
     from app.models.token import ApiToken
     

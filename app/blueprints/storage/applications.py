@@ -59,7 +59,6 @@ def process_release_assets(release_data):
     return processed_assets
 
 @storage_bp.route('/admin/p2p_download/page')
-@admin_required
 def p2p_download():
     """Serves the P2P Downloader page with GitHub release data."""
     current_date = datetime.now().strftime('%d.%m.%Y')

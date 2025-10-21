@@ -4,10 +4,9 @@ from flask_login import login_required, current_user
 main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
-@login_required
 def index():
     """Main dashboard page"""
-    return render_template('index.html', user=current_user)
+    return render_template('index.html', user=current_user if current_user.is_authenticated else None)
 
 @main_bp.route('/dashboard')
 @login_required

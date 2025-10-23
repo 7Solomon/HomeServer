@@ -71,6 +71,8 @@ def get_last_livestream_data(limit=7):
         return []
 
     try:
+        print("Fetching last livestream data from YouTube API...")
+        print(f"Using channel ID: {channel_id}")
         # 1) Find completed livestreams (no Shorts, no uploads, no upcoming/live)
         search_res = yt.search().list(
             part="id",

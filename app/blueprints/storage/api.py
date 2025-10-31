@@ -102,7 +102,7 @@ def download_song_data(filepath):
 @storage_bp.route('/api/song_data', methods=['POST'])
 @admin_token
 def upload_song_data():
-    """Upload a JSON file to the song_data folder - requires admin token"""
+    """Upload a JSON file to the song_data folder (supports subfolders) - requires admin token"""
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
     
@@ -119,22 +119,60 @@ def upload_song_data():
         # Reset file pointer after reading
         file.seek(0)
         
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(SONG_DATA_FOLDER, filename)
+        # Get the original filename which may contain subfolder path (e.g., "rock/song.json")
+        original_filename = file.filename
+        
+        # Split into parts and secure each component
+        path_parts = original_filename.split('/')
+        secured_parts = [secure_filename(part) for part in path_parts if part]
+        
+        # Reconstruct the path with secured components
+        relative_path = os.path.join(*secured_parts) if len(secured_parts) > 1 else secured_parts[0]
+        
+        # Build full path
+        file_path = os.path.join(SONG_DATA_FOLDER, relative_path)
+        
+        # Security check: ensure the path doesn't escape SONG_DATA_FOLDER
+        if not os.path.abspath(file_path).startswith(os.path.abspath(SONG_DATA_FOLDER)):
+            return jsonify({'error': 'Invalid path'}), 400
+        
+        # Create subdirectories if they don't exist
+        directory = os.path.dirname(file_path)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+        
+        # Check if file already exists
+        if os.path.exists(file_path):
+            return jsonify({
+                'error': 'File already exists',
+                'path': relative_path
+            }), 409  # Conflict
+        
+        # Save the file
         file.save(file_path)
         
         return jsonify({
             'success': True,
             'message': 'JSON file uploaded successfully',
             'file': {
-                'name': filename,
+                'name': secured_parts[-1],  # Just the filename
+                'path': relative_path,       # Full relative path
                 'size': os.path.getsize(file_path),
                 'properties': json_data
             }
-        })
+        }), 201
+        
     except json.JSONDecodeError:
         return jsonify({'error': 'Invalid JSON format'}), 400
-
+    except Exception as e:
+        # Clean up if file was partially created
+        if 'file_path' in locals() and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except OSError:
+                pass
+        return jsonify({'error': f'Failed to save file: {str(e)}'}), 500
+    
 @storage_bp.route('/api/song_data/<filename>', methods=['DELETE'])
 @admin_token
 def delete_song_data(filename):

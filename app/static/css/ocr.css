@@ -1,7 +1,27 @@
+/* Reduce purple background space */
+body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 0;
+}
+
+/* Make container wider for OCR page */
+body:has(.ocr-wrapper) .container {
+    max-width: 1800px; /* Increased from 1200px */
+    margin-top: 1rem;
+    padding: 1.5rem;
+}
+
+.container {
+    margin-top: 0;
+    min-height: calc(100vh - 140px);
+}
+
+/* OCR Wrapper */
 .ocr-wrapper {
-    max-width: 1600px;
+    max-width: 100%;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 1rem 0;
 }
 
 /* Page Header */
@@ -150,6 +170,9 @@
 .ocr-sections-list {
     max-height: 400px;
     overflow-y: auto;
+    overflow-x: hidden;
+    display: block !important;
+    visibility: visible !important;
 }
 
 .section-item {
@@ -158,6 +181,9 @@
     cursor: pointer;
     transition: all 0.2s;
     border-left: 3px solid transparent;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .section-item:hover {
@@ -303,45 +329,203 @@
     cursor: pointer;
 }
 
-/* Responsive */
+/* Upload Area */
+.upload-area {
+    border: 3px dashed #cbd5e0;
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+}
+
+.upload-area:hover {
+    border-color: #667eea;
+    background: #f0f4ff;
+}
+
+/* Responsive - Tablet and below */
 @media (max-width: 1200px) {
     .ocr-content-grid {
         grid-template-columns: 1fr;
+        gap: 1.5rem;
     }
     
+    /* Move right column (Song Info) to top */
     .ocr-right-column {
-        max-width: 600px;
-        margin: 0 auto;
+        order: -1;
+        max-width: 100%;
+        margin: 0;
     }
     
-    .canvas-scroll-container {
-        max-height: 60vh;
-    }
-}
-
-@media (max-width: 768px) {
-    .ocr-wrapper {
-        padding: 1rem;
-    }
-    
-    .ocr-header-text h2 {
-        font-size: 1.5rem;
-    }
-    
-    .ocr-button-group {
-        grid-template-columns: 1fr;
+    .ocr-left-column {
+        order: 1;
     }
     
     .canvas-scroll-container {
         max-height: 50vh;
     }
     
-    #canvasArea .ocr-card-body {
-        padding: 0;
+    .ocr-wrapper {
+        padding: 1rem;
+    }
+}
+
+/* Tablet landscape optimization */
+@media (min-width: 769px) and (max-width: 1200px) {
+    .ocr-right-column {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .ocr-button-group {
+        grid-column: 1 / -1;
+    }
+    
+    #sectionDetails {
+        grid-column: 1 / -1;
+    }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    .ocr-wrapper {
+        padding: 0.75rem;
+    }
+    
+    .ocr-page-header {
+        margin-bottom: 1.5rem;
+    }
+    
+    .ocr-header-icon {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 1rem;
+    }
+    
+    .ocr-header-icon i {
+        font-size: 2rem;
+    }
+    
+    .ocr-header-text h2 {
+        font-size: 1.5rem;
+    }
+    
+    .ocr-header-subtitle {
+        font-size: 1rem;
+    }
+    
+    .canvas-scroll-container {
+        max-height: 40vh;
+        padding: 0.5rem;
+    }
+    
+    .ocr-card {
+        margin-bottom: 1rem;
+    }
+    
+    .ocr-card-header {
+        padding: 0.75rem 1rem;
+    }
+    
+    .ocr-card-body {
+        padding: 1rem;
     }
     
     .ocr-alert-info {
-        margin: 0.5rem;
+        margin: 0.5rem 1rem;
+        padding: 0.75rem;
         font-size: 0.875rem;
     }
+    
+    .ocr-button-group {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .upload-area {
+        padding: 2rem 1rem;
+    }
+}
+
+/* Very small mobile devices */
+@media (max-width: 480px) {
+    .ocr-wrapper {
+        padding: 0.5rem;
+    }
+    
+    .ocr-page-header {
+        margin-bottom: 1rem;
+    }
+    
+    .ocr-header-icon {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .ocr-header-text h2 {
+        font-size: 1.25rem;
+    }
+    
+    .ocr-header-subtitle {
+        font-size: 0.9rem;
+    }
+    
+    .canvas-scroll-container {
+        max-height: 35vh;
+    }
+    
+    .ocr-button-group {
+        gap: 0.5rem;
+    }
+    
+    .ocr-header-controls {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .ocr-btn-sm {
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .upload-area {
+        padding: 1.5rem 0.75rem;
+    }
+    
+    .upload-area h4 {
+        font-size: 1rem;
+    }
+    
+    .upload-area p {
+        font-size: 0.875rem;
+    }
+}
+
+/* Utility classes */
+.d-none {
+    display: none !important;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Fix display utilities - make more specific */
+.ocr-wrapper .d-none,
+.ocr-card.d-none {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Canvas Card - ensure proper display */
+#canvasArea {
+    display: block !important;
+}
+
+#canvasArea.d-none {
+    display: none !important;
 }

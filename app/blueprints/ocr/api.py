@@ -26,7 +26,6 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @ocr_bp.route('/api/upload', methods=['POST'])
-@approved_user_required
 def upload_file():
     """Upload an image or PDF file for OCR processing"""
     if 'file' not in request.files:
@@ -66,7 +65,6 @@ def upload_file():
         return jsonify({'error': f'Upload failed: {str(e)}'}), 500
 
 @ocr_bp.route('/api/process', methods=['POST'])
-@approved_user_required
 def process_ocr():
     """Process uploaded file with OCR"""
     data = request.get_json()
@@ -181,7 +179,6 @@ def process_ocr():
 
 
 @ocr_bp.route('/api/languages', methods=['GET'])
-@approved_user_required
 def get_languages():
     """Get available OCR languages"""
     languages = [
@@ -191,7 +188,6 @@ def get_languages():
     return jsonify({'languages': languages})
 
 @ocr_bp.route('/api/file/<file_id>', methods=['DELETE'])
-@approved_user_required
 def delete_file(file_id):
     """Delete uploaded file"""
     try:
@@ -208,7 +204,6 @@ def delete_file(file_id):
     
 
 @ocr_bp.route('/api/finalize-song', methods=['POST'])
-@approved_user_required
 def finalize_song():
     """
     Finalize all OCR sections into a complete song JSON.
@@ -249,7 +244,6 @@ def finalize_song():
         return jsonify({'error': f'Finalization failed: {str(e)}'}), 500
 
 @ocr_bp.route('/api/section/edit', methods=['POST'])
-@approved_user_required
 def edit_section():
     """
     Edit a section's OCR text and reparse it with proper Python logic.

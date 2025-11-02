@@ -117,9 +117,11 @@
                 <button id="finalizeBtn" class="ocr-btn ocr-btn-success ocr-btn-large" disabled>
                     <i class="bi bi-download"></i> Herunterladen
                 </button>
+                {% if current_user.is_admin %}
                 <button id="finalizeUploadBtn" class="ocr-btn ocr-btn-primary ocr-btn-large" disabled>
                     <i class="bi bi-cloud-upload"></i> In Ordner speichern
                 </button>
+                {% endif %}
             </div>
 
             <!-- Ausgewählter Abschnitt Details -->

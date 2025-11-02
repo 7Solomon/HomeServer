@@ -133,8 +133,19 @@ async function handleImageUpload(e) {
 
     redrawAllImages();
     
-    document.getElementById('uploadArea').style.display = 'none';
-    document.getElementById('canvasArea').style.display = 'block';
+    // Fix display toggle
+    const uploadArea = document.getElementById('uploadArea');
+    const canvasArea = document.getElementById('canvasArea');
+    
+    if (uploadArea) {
+        uploadArea.style.display = 'none';
+        uploadArea.classList.add('d-none');
+    }
+    
+    if (canvasArea) {
+        canvasArea.style.display = 'block';
+        canvasArea.classList.remove('d-none');
+    }
     
     showToast(`${uploadedImages.length} Bild(er) geladen`, 'success');
 }
@@ -388,24 +399,36 @@ async function handleMouseUp(e) {
     startPos = null;
 }
 
+// Replace your updateSectionsList function with this fixed version:
+
 function updateSectionsList() {
     const list = document.getElementById('sectionsList');
     const count = document.getElementById('sectionCount');
+    
+    if (!list || !count) {
+        console.error('Sections list elements not found');
+        return;
+    }
     
     count.textContent = sections.length;
 
     if (sections.length === 0) {
         list.innerHTML = `<div style="text-align: center; padding: 2rem; color: #718096;">Noch keine Abschnitte. Zeichnen Sie auf das Bild, um Abschnitte zu erstellen.</div>`;
-        document.getElementById('finalizeBtn').disabled = true;
-        document.getElementById('finalizeUploadBtn').disabled = true;
+        const finalizeBtn = document.getElementById('finalizeBtn');
+        const finalizeUploadBtn = document.getElementById('finalizeUploadBtn');
+        if (finalizeBtn) finalizeBtn.disabled = true;
+        if (finalizeUploadBtn) finalizeUploadBtn.disabled = true;
         return;
     }
 
     const allProcessed = sections.every(s => s.ocrResult && !s.processing);
-    document.getElementById('finalizeBtn').disabled = !allProcessed || sections.length === 0;
-    document.getElementById('finalizeUploadBtn').disabled = !allProcessed || sections.length === 0;
+    const finalizeBtn = document.getElementById('finalizeBtn');
+    const finalizeUploadBtn = document.getElementById('finalizeUploadBtn');
+    if (finalizeBtn) finalizeBtn.disabled = !allProcessed || sections.length === 0;
+    if (finalizeUploadBtn) finalizeUploadBtn.disabled = !allProcessed || sections.length === 0;
     
-    list.innerHTML = sections.map(section => {
+    // Build HTML string for all sections
+    const sectionsHTML = sections.map(section => {
         let statusBadge = '';
         let statusColor = '';
         let statusIcon = '';
@@ -438,11 +461,11 @@ function updateSectionsList() {
         return `
             <div class="section-item ${selectedSection?.id === section.id ? 'active' : ''}" 
                  onclick="selectSection(${section.id})"
-                 style="padding: 1rem 1.5rem; border-bottom: 1px solid #e2e8f0; cursor: pointer;">
+                 style="display: block; padding: 1rem 1.5rem; border-bottom: 1px solid #e2e8f0; cursor: pointer; background: ${selectedSection?.id === section.id ? '#edf2f7' : 'transparent'}; border-left: 3px solid ${selectedSection?.id === section.id ? '#667eea' : 'transparent'};">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <span class="section-color-indicator" style="background-color: ${section.color}"></span>
-                        <strong>${section.name}</strong>
+                        <span class="section-color-indicator" style="background-color: ${section.color}; width: 20px; height: 20px; border-radius: 4px; display: inline-block; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);"></span>
+                        <strong style="color: #2d3748;">${section.name}</strong>
                         ${locationBadge}
                     </div>
                     <div style="display: flex; gap: 0.5rem;">
@@ -459,8 +482,44 @@ function updateSectionsList() {
             </div>
         `;
     }).join('');
+    
+    // Set the innerHTML once
+    list.innerHTML = sectionsHTML;
+    
+    console.log('Updated sections list with', sections.length, 'sections');
 }
 
+// Also add this helper function to delete sections:
+function deleteSection(sectionId) {
+    if (confirm('Diesen Abschnitt löschen?')) {
+        const index = sections.findIndex(s => s.id === sectionId);
+        if (index > -1) {
+            sections.splice(index, 1);
+            if (selectedSection?.id === sectionId) {
+                selectedSection = null;
+                const details = document.getElementById('sectionDetails');
+                if (details) {
+                    details.style.display = 'none';
+                }
+            }
+            updateSectionsList();
+            redrawAllImages();
+            showToast('Abschnitt gelöscht', 'info');
+        }
+    }
+}
+
+// Add this helper function to reprocess sections:
+async function reprocessSection(sectionId) {
+    const section = sections.find(s => s.id === sectionId);
+    if (!section) return;
+    
+    section.processing = true;
+    section.ocrResult = null;
+    updateSectionsList();
+    
+    await processSection(sectionId);
+}
 function selectSection(sectionId) {
     selectedSection = sections.find(s => s.id === sectionId);
     updateSectionsList();
@@ -755,12 +814,27 @@ function clearAll() {
         canvas.width = 0;
         canvas.height = 0;
         updateSectionsList();
+        
         const details = document.getElementById('sectionDetails');
         if (details) {
             details.style.display = 'none';
+            details.classList.add('d-none');
         }
-        document.getElementById('uploadArea').style.display = 'block';
-        document.getElementById('canvasArea').style.display = 'none';
+        
+        // Fix display toggle
+        const uploadArea = document.getElementById('uploadArea');
+        const canvasArea = document.getElementById('canvasArea');
+        
+        if (uploadArea) {
+            uploadArea.style.display = 'block';
+            uploadArea.classList.remove('d-none');
+        }
+        
+        if (canvasArea) {
+            canvasArea.style.display = 'none';
+            canvasArea.classList.add('d-none');
+        }
+        
         showToast('Alles gelöscht', 'info');
     }
 }

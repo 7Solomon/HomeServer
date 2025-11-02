@@ -240,7 +240,7 @@ def delete_file(file_id):
 
     # Delete physical file
     try:
-        os.remove(os.path.join(UPLOAD_FOLDER, file.path))
+        os.remove(os.path.join(SONG_DATA_FOLDER, file.path))
     except (OSError, FileNotFoundError):
         pass
 
@@ -389,8 +389,8 @@ def download_file(file_id):
     
     try:
         from flask import send_file
-        # Construct full path - file.path is relative to UPLOAD_FOLDER
-        full_path = os.path.join(UPLOAD_FOLDER, file.path)
+        # Construct full path - file.path is relative to SONG_DATA_FOLDER
+        full_path = os.path.join(SONG_DATA_FOLDER, file.path)
         
         # Debug logging
         #print(f"Attempting to download file: {file.name}")

@@ -43,34 +43,37 @@ def format_size(size_in_bytes):
     else:
         return f"{size_in_bytes/(1024*1024*1024):.1f} GB"
 
+import os
+from app import db
+from app.blueprints.storage import UPLOAD_FOLDER
+
+# Add this constant at the top
+SONG_DATA_FOLDER = os.path.abspath(os.path.normpath(os.path.join(UPLOAD_FOLDER, 'song_data')))
 
 def delete_directory_recursive(directory):
-    """
-    Recursively deletes a directory, its subdirectories, and all files within them,
-    both from the filesystem and the database.
-    """
-    # Delete files in the current directory
-    for file in directory.files:
+    """Recursively delete a directory and all its contents"""
+    from app.models.storage import Directory, File
+    
+    # Delete all files in this directory
+    files = File.query.filter_by(directory_id=directory.id).all()
+    for file in files:
         try:
-            file_path = os.path.join(SONG_DATA_FOLDER, file.path) # Ensure UPLOAD_FOLDER is accessible
+            # Use SONG_DATA_FOLDER instead of UPLOAD_FOLDER
+            file_path = os.path.join(SONG_DATA_FOLDER, file.path)
             if os.path.exists(file_path):
                 os.remove(file_path)
-        except OSError as e:
-            print(f"Error deleting physical file {file.path}: {e}")
-            # Decide if this should raise an error or just log
+        except (OSError, FileNotFoundError):
+            pass
         db.session.delete(file)
-
-    # Recursively delete subdirectories
-    for subdir in directory.subdirectories:
+    
+    # Recursively delete all subdirectories
+    subdirectories = Directory.query.filter_by(parent_id=directory.id).all()
+    for subdir in subdirectories:
         delete_directory_recursive(subdir)
-
-    # Delete the directory itself from the database
+    
+    # Delete the directory itself
     db.session.delete(directory)
-    # Commit changes after all operations for this directory and its contents are done.
-    # The caller of this function might want to manage the commit,
-    # but for a self-contained utility, committing here can be an option.
-    # However, it's generally better to commit at the end of the top-level operation.
-    # For now, let's assume the calling API endpoint will handle the commit.
+    db.session.commit()
 
 def is_descendant(potential_descendant, potential_ancestor):
     """

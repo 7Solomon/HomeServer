@@ -3,6 +3,9 @@ from app.blueprints.storage import UPLOAD_FOLDER, ALLOWED_EXTENSIONS
 from app import db
 from app.models.storage import File, Directory 
 
+SONG_DATA_FOLDER = os.path.abspath(os.path.normpath(os.path.join(UPLOAD_FOLDER, 'song_data')))
+os.makedirs(SONG_DATA_FOLDER, exist_ok=True)
+
 def allowed_file(filename):
     """Check if file extension is allowed"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -49,7 +52,7 @@ def delete_directory_recursive(directory):
     # Delete files in the current directory
     for file in directory.files:
         try:
-            file_path = os.path.join(UPLOAD_FOLDER, file.path) # Ensure UPLOAD_FOLDER is accessible
+            file_path = os.path.join(SONG_DATA_FOLDER, file.path) # Ensure UPLOAD_FOLDER is accessible
             if os.path.exists(file_path):
                 os.remove(file_path)
         except OSError as e:

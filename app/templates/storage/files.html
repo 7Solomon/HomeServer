@@ -176,8 +176,8 @@
         <form method="POST" action="{{ url_for('storage.upload_file') }}" enctype="multipart/form-data">
             <input type="hidden" name="directory_id" value="{{ current_dir.id if current_dir else '' }}">
             <div class="form-group">
-                <label for="file">Datei auswählen</label>
-                <input type="file" id="file" name="file" required>
+                <label for="file">Datei(en) auswählen</label>
+                <input type="file" id="file" name="file" multiple required>
             </div>
             <div class="form-group">
                 <button type="submit" class="btn btn-primary">Hochladen</button>

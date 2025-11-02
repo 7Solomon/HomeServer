@@ -117,3 +117,19 @@ def predigt_user_required(f):
         
         return f(*args, **kwargs)
     return decorated_function
+
+def ocr_user_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Check if user is logged in via session
+        if not current_user.is_authenticated:
+            flash('Please log in to access this page.', 'info')
+            return redirect(url_for('auth.login', next=request.url))
+        
+        # Check ocr permission
+        if not current_user.is_ocr_berechtigt:
+            flash('OCR access required.', 'danger')
+            return redirect(url_for('main.index'))
+        
+        return f(*args, **kwargs)
+    return decorated_function

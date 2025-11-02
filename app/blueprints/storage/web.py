@@ -10,6 +10,8 @@ from app.blueprints.storage import UPLOAD_FOLDER, storage_bp
 from app.models.storage import Directory, File
 from app.utils.auth import admin_required
 
+SONG_DATA_FOLDER = os.path.abspath(os.path.normpath(os.path.join(UPLOAD_FOLDER, 'song_data')))
+os.makedirs(SONG_DATA_FOLDER, exist_ok=True)
 
 # Global file explorer - all authenticated users can see all files
 @storage_bp.route('/files')
@@ -80,12 +82,12 @@ def directory(dir_id):
                          file_icon=file_icon,
                          format_size=format_size)
 
-# Admin-only routes for file management
+# A
 @storage_bp.route('/upload', methods=['POST'])
 @login_required
 @admin_required
 def upload_file():
-    """Upload file - admin only"""
+    """Upload file(s) - admin only - supports multiple files"""
     if not current_user.is_approved:
         flash('Your account is pending approval.', 'error')
         return redirect(url_for('main.index'))
@@ -106,12 +108,20 @@ def upload_file():
         flash('No file part in the request.', 'error')
         return redirect(request.referrer or redirect_url)
 
-    file = request.files['file']
-    if file.filename == '':
-        flash('No selected file.', 'error')
+    files = request.files.getlist('file')  # Get list of files
+    
+    if not files or all(f.filename == '' for f in files):
+        flash('No selected files.', 'error')
         return redirect(request.referrer or redirect_url)
 
-    if file:
+    uploaded_count = 0
+    skipped_count = 0
+    error_count = 0
+
+    for file in files:
+        if file.filename == '':
+            continue
+            
         original_filename = secure_filename(file.filename)
         
         # Check for duplicate file name within the same directory
@@ -121,13 +131,13 @@ def upload_file():
         ).first()
 
         if existing_file:
-            flash(f'A file named "{original_filename}" already exists in this location.', 'error')
-            return redirect(redirect_url)
+            skipped_count += 1
+            continue
 
         _, extension = os.path.splitext(original_filename)
         unique_filename_for_storage = str(uuid.uuid4()) + extension
         
-        file_path_on_disk = os.path.join(UPLOAD_FOLDER, unique_filename_for_storage)
+        file_path_on_disk = os.path.join(SONG_DATA_FOLDER, unique_filename_for_storage)
         
         try:
             file.save(file_path_on_disk)
@@ -142,18 +152,28 @@ def upload_file():
             )
             db.session.add(new_file_db)
             db.session.commit()
-            flash('File uploaded successfully.', 'success')
+            uploaded_count += 1
         except Exception as e:
+            error_count += 1
             if os.path.exists(file_path_on_disk):
                 try:
                     os.remove(file_path_on_disk)
                 except OSError:
                     pass
-            flash(f'Error uploading file: {str(e)}', 'error')
-        
-        return redirect(redirect_url)
-
-    return redirect(request.referrer or redirect_url)
+    
+    # Show summary message
+    messages = []
+    if uploaded_count > 0:
+        messages.append(f'{uploaded_count} file(s) uploaded successfully')
+    if skipped_count > 0:
+        messages.append(f'{skipped_count} file(s) skipped (duplicates)')
+    if error_count > 0:
+        messages.append(f'{error_count} file(s) failed')
+    
+    if messages:
+        flash('. '.join(messages) + '.', 'success' if error_count == 0 else 'warning')
+    
+    return redirect(redirect_url)
 
 @storage_bp.route('/create-directory', methods=['POST'])
 @login_required

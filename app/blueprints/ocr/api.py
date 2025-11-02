@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 from app.blueprints.ocr import ocr_bp, OCR_UPLOAD_FOLDER
 from app.blueprints.ocr.functions.chord_utils import ChordUtils
 from app.blueprints.ocr.functions.converter import finalize_song_data, merge_ocr_sections, parse_ocr_section_to_preliminary, parse_raw_text_to_preliminary, preliminary_to_structured, rebuild_plain_text
-from app.utils.auth import approved_user_required
+from app.utils.auth import approved_user_required, ocr_user_required
 from app import db
 from app.models.storage import Directory, File as StorageFile
 from app.blueprints.storage import UPLOAD_FOLDER
@@ -302,6 +302,7 @@ def edit_section():
 
 @ocr_bp.route('/api/finalize-and-upload', methods=['POST'])
 @approved_user_required
+@ocr_user_required
 def finalize_and_upload():
     """
     Finalize song and upload to ocr folder, registering it in the database.

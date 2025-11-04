@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+{% block title %}Dating-Netzwerk - Heim Speicher{% endblock %}
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dating_graph.css') }}">
+{% endblock %}
+
+
+{% block content %}
+<div class="dating-graph-wrapper">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="header-icon">💕</div>
+        <div class="header-text">
+            <h2>Dating-Leben Manager</h2>
+            <p class="header-subtitle">Visualisiere und verwalte deine Dating-Kontakte</p>
+        </div>
+    </div>
+
+
+    <!-- Main Container -->
+    <div class="hybrid-container">
+        <!-- Top Navigation Bar -->
+        <div class="top-nav-bar">
+            <div class="view-tabs">
+                <button class="tab-btn active" data-view="cards">
+                    <i class="fas fa-th-large"></i>
+                    <span>Karten</span>
+                </button>
+                <button class="tab-btn" data-view="graph">
+                    <i class="fas fa-project-diagram"></i>
+                    <span>Netzwerk</span>
+                </button>
+            </div>
+            
+            <div class="top-actions">
+                <button class="btn btn-primary" onclick="openPersonModal()">
+                    <i class="fas fa-plus"></i>
+                    <span class="btn-text">Person hinzufügen</span>
+                </button>
+                <button class="btn btn-secondary" id="toggle-filters-btn">
+                    <i class="fas fa-filter"></i>
+                    <span class="btn-text">Filter</span>
+                </button>
+            </div>
+        </div>
+
+
+        <!-- Filters Panel (Collapsible) -->
+        <div class="filters-panel collapsed" id="filters-panel">
+            <div class="filters-content">
+                <div class="filter-group">
+                    <label><i class="fas fa-search"></i> Suchen</label>
+                    <input type="text" id="search-input" class="filter-input" placeholder="Nach Name, Spitzname, ID suchen...">
+                </div>
+                
+                <div class="filter-group">
+                    <label><i class="fas fa-folder"></i> Kategorie</label>
+                    <select id="category-filter" class="filter-input">
+                        <option value="">Alle Kategorien</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label><i class="fas fa-heart"></i> Status</label>
+                    <select id="status-filter" class="filter-input">
+                        <option value="">Alle Status</option>
+                        <option value="interested">💖 Interessiert</option>
+                        <option value="dating">❤️ Dating</option>
+                        <option value="friend">😊 Freund/in</option>
+                        <option value="no_connection">😐 Keine Verbindung</option>
+                        <option value="ghosted">👻 Geghostet</option>
+                        <option value="unknown">❓ Unbekannt</option>
+                    </select>
+                </div>
+
+
+                <div class="filter-actions">
+                    <button class="btn btn-sm btn-secondary" onclick="clearFilters()">
+                        <i class="fas fa-times"></i> Löschen
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Cards View -->
+        <div class="view-container active" id="cards-view">
+            <div class="stats-summary">
+                <div class="stat-box">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-info">
+                        <div class="stat-number" id="cards-stat-persons">0</div>
+                        <div class="stat-label">Personen</div>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-icon">📁</div>
+                    <div class="stat-info">
+                        <div class="stat-number" id="cards-stat-categories">0</div>
+                        <div class="stat-label">Kategorien</div>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-icon">📅</div>
+                    <div class="stat-info">
+                        <div class="stat-number" id="cards-stat-dates">0</div>
+                        <div class="stat-label">Dates</div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div id="cards-container">
+                <!-- Cards will be dynamically inserted here -->
+            </div>
+
+
+            <div class="empty-state" id="cards-empty-state" style="display: none;">
+                <i class="fas fa-users fa-3x"></i>
+                <h3>Keine Personen gefunden</h3>
+                <p>Beginne damit, deine erste Person hinzuzufügen!</p>
+                <button class="btn btn-primary" onclick="openPersonModal()">
+                    <i class="fas fa-plus"></i> Person hinzufügen
+                </button>
+            </div>
+        </div>
+
+
+        <!-- Graph View (Existing) -->
+        <div class="view-container" id="graph-view">
+            <div class="graph-controls">
+                <button class="btn-icon" onclick="network.fit()" title="An Bildschirm anpassen">
+                    <i class="fas fa-expand"></i>
+                </button>
+                <button class="btn-icon" onclick="refreshNetwork()" title="Netzwerk aktualisieren">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <button class="btn-icon" onclick="togglePhysics()" title="Physik umschalten">
+                    <i class="fas fa-magnet"></i>
+                </button>
+            </div>
+            <div id="network-canvas"></div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Floating Action Button -->
+<button class="fab" id="view-switch-fab" style="display: none;">
+    <i class="fas fa-exchange-alt"></i>
+</button>
+
+
+<!-- Person Modal -->
+<div class="modal" id="person-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="person-modal-title">Person hinzufügen</h2>
+            <button class="btn-icon-close" onclick="closeAllModals()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="person-form" onsubmit="handlePersonSubmit(event)">
+            <div class="form-group">
+                <label for="person-name">Name *</label>
+                <input type="text" id="person-name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="person-nickname">Spitzname</label>
+                <input type="text" id="person-nickname">
+            </div>
+            
+            <div class="form-group">
+                <label for="person-custom-id">Benutzerdefinierte ID</label>
+                <input type="text" id="person-custom-id" placeholder="z.B. HINGE_001">
+            </div>
+            
+            <div class="form-group">
+                <label for="person-categories">Kategorien *</label>
+                <select id="person-categories" multiple required>
+                    <!-- Populated dynamically -->
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="person-status">Status</label>
+                <select id="person-status">
+                    <option value="unknown">❓ Unbekannt</option>
+                    <option value="interested">💖 Interessiert</option>
+                    <option value="dating">❤️ Dating</option>
+                    <option value="friend">😊 Freund/in</option>
+                    <option value="no_connection">😐 Keine Verbindung</option>
+                    <option value="ghosted">👻 Geghostet</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="person-first-contact">Erstkontakt-Datum</label>
+                <input type="date" id="person-first-contact">
+            </div>
+            
+            <div class="form-group">
+                <label for="person-fun-fact">Fun Fact</label>
+                <textarea id="person-fun-fact" rows="2"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="person-story">Geschichte</label>
+                <textarea id="person-story" rows="3"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="person-notes">Notizen</label>
+                <textarea id="person-notes" rows="3"></textarea>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeAllModals()">Abbrechen</button>
+                <button type="submit" class="btn btn-primary">Speichern</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- Category Modal -->
+<div class="modal" id="category-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Kategorie hinzufügen</h2>
+            <button class="btn-icon-close" onclick="closeAllModals()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="category-form" onsubmit="handleCategorySubmit(event)">
+            <div class="form-group">
+                <label for="category-name">Kategoriename *</label>
+                <input type="text" id="category-name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="category-type">Typ</label>
+                <select id="category-type">
+                    <option value="platform">Plattform</option>
+                    <option value="introduction">Vorstellung</option>
+                    <option value="event">Event</option>
+                    <option value="other">Sonstiges</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="category-color">Farbe</label>
+                <input type="color" id="category-color" value="#667eea">
+            </div>
+            
+            <div class="form-group">
+                <label for="category-icon">Icon (Font Awesome-Klasse)</label>
+                <input type="text" id="category-icon" placeholder="fa-heart">
+            </div>
+            
+            <div class="form-group">
+                <label for="category-description">Beschreibung</label>
+                <textarea id="category-description" rows="2"></textarea>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeAllModals()">Abbrechen</button>
+                <button type="submit" class="btn btn-primary">Erstellen</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- Detail Panel (Sliding from right) -->
+<div class="detail-panel" id="detail-panel">
+    <div class="detail-header">
+        <h2 id="detail-title">Personendetails</h2>
+        <button class="btn-icon-close" onclick="closeDetailPanel()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div id="detail-content">
+        <!-- Content loaded dynamically -->
+    </div>
+</div>
+
+
+<!-- Notification Toast -->
+<div class="notification-toast" id="notification-toast">
+    <i class="fas fa-check-circle"></i>
+    <span id="notification-message"></span>
+</div>
+
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js"></script>
+<script src="{{ url_for('static', filename='js/dating_graph.js') }}"></script>
+{% endblock %}

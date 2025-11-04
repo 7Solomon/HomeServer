@@ -77,3 +77,48 @@ def create_predigt_user(username, password, first_name, last_name):
     db.session.add(user)
     db.session.commit()
     click.echo(f'Predigt user {username} created successfully.')
+
+
+@click.command('create-ocr-user')
+@click.argument('username')
+@click.argument('password')
+@click.argument('first_name')
+@click.argument('last_name')
+@with_appcontext
+def create_ocr_user(username, password, first_name, last_name):
+    """Create a user with 'ocr' role."""
+    from app import db
+    from app.models.user import User
+    
+    user = User.query.filter_by(username=username).first()
+    if user:
+        click.echo(f'User {username} already exists.')
+        return
+        
+    user = User(username=username, role='ocr', first_name=first_name, last_name=last_name, is_approved=True)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+    click.echo(f'OCR user {username} created successfully.')
+
+@click.command('create-dating-graph-user')
+@click.argument('username')
+@click.argument('password')
+@click.argument('first_name')
+@click.argument('last_name')
+@with_appcontext
+def create_dating_graph_user(username, password, first_name, last_name):
+    """Create a user with 'dating_graph' role."""
+    from app import db
+    from app.models.user import User
+    
+    user = User.query.filter_by(username=username).first()
+    if user:
+        click.echo(f'User {username} already exists.')
+        return
+        
+    user = User(username=username, role='dating_graph', first_name=first_name, last_name=last_name, is_approved=True)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+    click.echo(f'Dating Graph user {username} created successfully.')

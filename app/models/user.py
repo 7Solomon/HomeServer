@@ -21,6 +21,10 @@ class User(UserMixin, db.Model):
     @property
     def is_ocr_berechtigt(self):
         return self.role in ['admin', 'ocr']
+    @property
+    def is_dating_graph_berechtigt(self):
+        return self.role in ['admin', 'dating_graph']
+        
     def set_password(self, password):
         """Hash and set the user's password"""
         self.password_hash = generate_password_hash(password)

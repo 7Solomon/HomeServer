@@ -133,3 +133,19 @@ def ocr_user_required(f):
         
         return f(*args, **kwargs)
     return decorated_function
+
+def dating_graph_user_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Check if user is logged in via session
+        if not current_user.is_authenticated:
+            flash('Please log in to access this page.', 'info')
+            return redirect(url_for('auth.login', next=request.url))
+        
+        # Check dating graph permission
+        if not current_user.is_dating_graph_berechtigt:
+            flash('Dating Graph access required.', 'danger')
+            return redirect(url_for('main.index'))
+        
+        return f(*args, **kwargs)
+    return decorated_function
